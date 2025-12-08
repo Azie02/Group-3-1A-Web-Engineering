@@ -1,0 +1,200 @@
+//Create Database If blum buat lgi
+CREATE DATABASE fkparksystem;
+USE fkparksystem;
+
+//Create Table
+CREATE TABLE Student (
+    StudentID VARCHAR(10) PRIMARY KEY,
+    StudentName VARCHAR(100),
+    StudentContact VARCHAR(20),
+    StudentEmail VARCHAR(100),
+    StudentPic VARCHAR(100),
+    StudentPassword VARCHAR(100)
+);
+
+CREATE TABLE Staff (
+    StaffID VARCHAR(10) PRIMARY KEY,
+    StaffName VARCHAR(100),
+    StaffContact VARCHAR(20),
+    StaffEmail VARCHAR(100),
+    StaffPic VARCHAR(100),
+    StaffPassword VARCHAR(100),
+    Roles VARCHAR(50)
+);
+
+CREATE TABLE Vehicle (
+    VehicleID VARCHAR(10) PRIMARY KEY,
+    StudentID VARCHAR(10),
+    VehicleType VARCHAR(50),
+    PlateNumber VARCHAR(20),
+    VehicleModel VARCHAR(50),
+    VehicleColour VARCHAR(30),
+    FOREIGN KEY (StudentID) REFERENCES Student(StudentID)
+);
+
+CREATE TABLE ParkingArea (
+    ParkingAreaID VARCHAR(10) PRIMARY KEY,
+    AreaType VARCHAR(50),
+    AreaNumber VARCHAR(10)
+);
+
+CREATE TABLE ParkingSpace (
+    ParkingSpaceID VARCHAR(10) PRIMARY KEY,
+    ParkingAreaID VARCHAR(10),
+    SpaceNumber VARCHAR(20),
+    SpaceType VARCHAR(30),
+    FOREIGN KEY (ParkingAreaID) REFERENCES ParkingArea(ParkingAreaID)
+);
+
+CREATE TABLE ParkingStatus (
+    ParkingStatusID INT AUTO_INCREMENT PRIMARY KEY,
+    ParkingSpaceID VARCHAR(10),
+    ParkingAreaID VARCHAR(10),
+    AreaStatus VARCHAR(50),
+    SpaceStatus VARCHAR(50),
+    DateStatus DATE,
+    FOREIGN KEY (ParkingSpaceID) REFERENCES ParkingSpace(ParkingSpaceID),
+    FOREIGN KEY (ParkingAreaID) REFERENCES ParkingArea(ParkingAreaID)
+);
+
+CREATE TABLE QRCode (
+    QRCodeID VARCHAR(10) PRIMARY KEY,
+    Image_URL VARCHAR(255),
+    QR_Description VARCHAR(255)
+);
+
+CREATE TABLE Booking (
+    BookingID VARCHAR(10) PRIMARY KEY,
+    StudentID VARCHAR(10),
+    ParkingSpaceID VARCHAR(10),
+    BookingDate DATE,
+    BookingTime TIME,
+    BookingStatus VARCHAR(20),
+    FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
+    FOREIGN KEY (ParkingSpaceID) REFERENCES ParkingSpace(ParkingSpaceID)
+);
+
+CREATE TABLE StudentMerit (
+    MeritID INT AUTO_INCREMENT PRIMARY KEY,
+    StudentID VARCHAR(10),
+    MeritPoint INT,
+    DemeritPoint INT,
+    TotalMeritPoint INT,
+    Date DATE,
+    FOREIGN KEY (StudentID) REFERENCES Student(StudentID)
+);
+
+CREATE TABLE Violation (
+    ViolationID VARCHAR(10) PRIMARY KEY,
+    ViolationName VARCHAR(100),
+    ViolationType VARCHAR(50),
+    ViolationCode VARCHAR(20),
+    ViolationDescription VARCHAR(255)
+);
+
+CREATE TABLE TrafficSummon (
+    SummonID VARCHAR(10) PRIMARY KEY,
+    StudentID VARCHAR(10),
+    ViolationID VARCHAR(10),
+    SummonDescription VARCHAR(255),
+    SummonDate DATE,
+    SummonTime TIME,
+    FineAmount DECIMAL(10,2),
+    FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
+    FOREIGN KEY (ViolationID) REFERENCES Violation(ViolationID)
+);
+
+//Insert data
+INSERT INTO Student VALUES
+('CB23067', 'Farid Kamal', '012-3456789', 'faridkamal@gmail.com', 'Farid.jpg', 'farid1234'),
+('CB23028', 'Nur Alia', '013-9988776', 'aliazahra@gmail.com', 'Alia.jpg', 'Alia@123'),
+('CB23099', 'Irfan Shah', '011-7623458', 'irfanshah@gmail.com', 'Irfan.jpg', 'Irfan@123'),
+('CB24001', 'Nur Amirah', '014-5566778', 'nuraminah@gmail.com', 'Amirah.jpg', 'Amirah@123'),
+('CA23011', 'Faris Daniel', '017-4433221', 'faris@gmail.com', 'Faris.jpg', 'Faris@123'),
+('CA23099', 'Nur Syafiqah', '018-9876543', 'syafiqah@gmail.com', 'Syafiqah.jpg', 'Syafiqah@123'),
+('CB24055', 'Daniel Haikal', '010-2233445', 'danielhaikal@gmail.com', 'Haikal.jpg', 'Haikal@123'),
+('CA24089', 'Nurul Izzah', '019-7788990', 'izzah@gmail.com', 'Izzah.jpg', 'Izzah@123'),
+('CA24011', 'Hakim Fitri', '016-4455667', 'hakimfitri@gmail.com', 'Hakim.jpg', 'Hakim@123'),
+('CB24190', 'Puteri Aisyah', '012-8899001', 'PuteriAisyah@gmail.com', 'Aisyah.jpg', 'Aisyah@123');
+
+
+INSERT INTO Staff VALUES
+('ST001', 'Azelena', '012-3456789', 'azelena@gmail.com', 'Azelena.png', 'Azie@1234', 'Administrator'),
+('ST002', 'Ahmad Faizal', '012-8899321', 'faizalahmad@gmail.com', 'faizal.jpg', 'Faizal@123', 'Administrator'),
+('ST003', 'Siti Farhah', '015-9988770', 'farhah.siti@gmail.com', 'farhah.jpg', 'Farhah@123', 'Administrator'),
+('ST004', 'Irfan Zhafri', '018-4455322', 'irfan.zhafri@gmail.com', 'irfan.jpg', 'Irfan@123&', 'Administrator'),
+('ST005', 'Farid Zainal', '012-5522988', 'farid.zainal@gmail.com', 'farid.jpg', 'FaridZ@123', 'Administrator'),
+('ST006', 'Nurul Shafika', '013-7722441', 'shafika.nurul@gmail.com', 'Nurul.jpg', 'Shafika@123', 'SecurityStaff'),
+('ST007', 'Muhammad Afiq', '011-6633412', 'afiq.muhammad@gmail.com', 'afiq.jpeg', 'Afiq@123', 'SecurityStaff'),
+('ST008', 'Daniel Amir', '017-3456721', 'irfan.zhafri@gmail.com', 'Irfan.jpg', 'Irfan@234', 'SecurityStaff'),
+('ST009', 'Puteri Balqis', '019-2211567', 'balqis.puteri@gmail.com', 'Balqis.jpg', 'Balqis@234', 'SecurityStaff'),
+('ST010', 'Syafiq Hanafi', '014-8899034', 'syafiq.hanafi@gmail.com', 'Syafiq.jpg', 'Syafiq@234', 'SecurityStaff');
+
+
+INSERT INTO Vehicle VALUES
+('V001', 'CB23067', 'Car', 'JXD2345', 'Proton Saga', 'Silver'),
+('V002', 'CA23011', 'Motorcycle', 'JKL8899', 'Yamaha', 'Black'),
+('V003', 'CA24011', 'Car', 'BDF7721', 'Perodua Myvi', 'Blue'),
+('V004', 'CA24089', 'Motorcycle', 'KAA1234', 'Honda', 'White'),
+('V005', 'CB23028', 'Car', 'MNB5551', 'Toyota Vios', 'Black'),
+('V006', 'CB23099', 'Motorcycle', 'VNF6789', 'Honda EX5', 'Black'),
+('V007', 'CB24001', 'Car', 'ANN1267', 'Honda City', 'Blue');
+
+INSERT INTO ParkingArea VALUES
+('PA01', 'Staff', 'A1'),
+('PA02', 'Staff', 'A2'),
+('PA03', 'Student', 'B1'),
+('PA04', 'Student', 'B2'),
+('PA05', 'Student', 'B3');
+
+INSERT INTO ParkingSpace VALUES
+('PS01', 'PA03', 'B1-01', 'Student'),
+('PS02', 'PA03', 'B1-02', 'Student'),
+('PS03', 'PA03', 'B1-03', 'Student'),
+('PS04', 'PA03', 'B1-04', 'Student'),
+('PS05', 'PA03', 'B1-05', 'Student');
+
+INSERT INTO ParkingStatus (ParkingSpaceID, ParkingAreaID, AreaStatus, SpaceStatus, DateStatus) VALUES
+('PS02', 'PA01', 'Open', 'Full', '2025-12-04'),
+(NULL, 'PA02', 'Closed', 'Closed', '2025-12-01'),
+('PS03', 'PA03', 'Open', 'Open', '2025-11-29'),
+(NULL, 'PA04', 'Open', 'Open', '2025-11-28'),
+('PS04', 'PA05', 'Open', 'Open', '2025-12-29');
+
+INSERT INTO QRCode VALUES
+('QR001', 'Https.qr.pa01.com', 'QR code for Parking Area A1'),
+('QR002', 'Https.qr.pa02.com', 'QR code for Parking Area A2'),
+('QR003', 'Https.qr.pa03.com', 'QR code for Parking Area B1'),
+('QR004', 'Https.qr.pa04.com', 'QR code for Parking Area B2'),
+('QR005', 'Https.qr.pa05.com', 'B3');
+
+INSERT INTO Booking VALUES
+('B001', 'CB23067', 'PS01', '2025-11-04', '08:00:00', 'Confirmed'),
+('B002', 'CB23028', 'PS02', '2025-11-06', '09:30:00', 'Cancelled'),
+('B003', 'CB23099', 'PS03', '2025-11-20', '07:45:00', 'Pending'),
+('B005', 'CB24001', 'PS04', '2025-11-07', '10:00:00', 'Cancelled'),
+('B006', 'CA23011', 'PS05', '2025-11-29', '14:00:00', 'Confirmed');
+
+INSERT INTO StudentMerit (StudentID, MeritPoint, DemeritPoint, TotalMeritPoint, Date) VALUES
+('CB23067', 200, 5, 195, '2025-11-02'),
+('CB23028', 100, 10, 90, '2025-11-15'),
+('CB23099', 150, 5, 145, '2025-11-06'),
+('CB24001', 100, 20, 80, '2025-11-04'),
+('CA23011', 200, 10, 190, '2025-11-04'),
+('CA23099', 150, 10, 140, '2025-12-01'),
+('CB24055', 100, 10, 90, '2025-11-27'),
+('CA24089', 120, 15, 105, '2025-11-19'),
+('CA24011', 150, 25, 125, '2025-11-26'),
+('CB24190', 140, 10, 130, '2025-11-07');
+
+INSERT INTO Violation VALUES
+('V001', 'Illegal Parking', 'Parking', 'P001', 'Parking in a prohibited area'),
+('V002', 'Speeding', 'Driving', 'D002', 'Exceeding the campus speed limit'),
+('V003', 'No Helmet', 'Safety', 'SD002', 'Riding motorcycle without helmet'),
+('V004', 'Blocking Entrance', 'Parking', 'P003', 'Vehicle blocking building entrance');
+
+INSERT INTO TrafficSummon VALUES
+('SU01', 'CB23067', 'V001', 'Car parked in the lecturer’s lot', '2025-11-11', '09:15:00', 50.00),
+('SU02', 'CB23028', 'V003', 'Student riding without a helmet', '2025-11-06', '08:30:00', 30.00),
+('SU03', 'CB24001', 'V002', 'Exceeded speed limit', '2025-11-07', '14:00:00', 50.00),
+('SU04', 'CB24055', 'V004', 'Vehicle blocking the main entrance', '2025-11-08', '09:00:00', 40.00);
