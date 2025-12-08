@@ -17,10 +17,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'student') {
 }
 
 // Get student data from database
-$admin_id = $_SESSION['user_id'];
+$student_id = $_SESSION['user_id'];
 $query = "SELECT * FROM student WHERE studentID = ?";
 $stmt = $conn->prepare($query);
-$stmt->bind_param("s", $admin_id);
+$stmt->bind_param("s", $student_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -31,9 +31,6 @@ if ($result->num_rows !== 1) {
     exit();
 }
 $student = $result->fetch_assoc();
-
-// SEARCH FUNCTIONALITY
-$search_results = [];
 
 // SEARCH FUNCTIONALITY
 $search_results = [];
@@ -71,9 +68,9 @@ if (isset($_GET['fsrch']) && $_GET['fsrch'] !== "") {
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ssssss",
-        $admin_id, $search,     // Vehicle
-        $admin_id, $search,     // Booking
-        $admin_id, $search      // Merit
+        $student_id, $search,     // Vehicle
+        $student_id, $search,     // Booking
+        $student_id, $search      // Merit
     );
     $stmt->execute();
     $search_results = $stmt->get_result();

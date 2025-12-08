@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
 </head>
 <body>
     <div class="login-box">
-        <h2>Login to FKParkSystem</h2>
+        <h2>Login to FK Park System</h2>
         <?php if (!empty($error)): ?>
             <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
                 <option value="" disabled selected>Select Roles</option>
                 <option value="student">Student</option>
                 <option value="Administrator">Administrator</option>
-                <option value="securitystaff">Security Management Unit Staff</option>
+                <option value="SecurityStaff">Security Management Unit Staff</option>
             </select>
             <button type="submit">Login</button>
         </form>
