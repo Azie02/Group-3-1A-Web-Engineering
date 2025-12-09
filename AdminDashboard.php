@@ -171,7 +171,7 @@ if (!isset($_SESSION['user_id'])) {
 <html>
     <head>
         <title>Admin Dashboard</title>
-        <meta name="desription" content="SecurityStaffDashboard">
+        <meta name="desription" content="AdminDashboard">
         <meta name="author" content="Group1A3">
         <style>
             body {
@@ -433,10 +433,10 @@ if (!isset($_SESSION['user_id'])) {
         </header>
         
         <nav class="sidebar">
-            <h1 class="sidebartitle">Security Staff Bar</h1>
+            <h1 class="sidebartitle">Admin Bar</h1>
             <ul class="menu">
                 <li>
-                    <a href="SecurityStaffDashboard.php" class="menutext active">Dashboard</a>
+                    <a href="AdminDashboard.php" class="menutext active">Dashboard</a>
                 </li>
                 <li>
                     <a href="ManageUser.php" class="menutext">Manage User</a>
