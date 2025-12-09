@@ -3,7 +3,7 @@
 session_start();
 
 // Database connection parameters
-$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3307);
+$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3306);
 
 // Check if database connection failed
 if ($conn->connect_error) {
@@ -74,6 +74,23 @@ if (isset($_GET['fsrch']) && $_GET['fsrch'] !== "") {
     );
     $stmt->execute();
     $search_results = $stmt->get_result();
+}
+
+// 20 seconds inactivity timeout
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 20) {
+    session_unset();
+    session_destroy();
+    header("Location: Login.php");
+    exit();
+}
+
+// Update activity time on every request
+$_SESSION['last_activity'] = time();
+
+// Existing security check (keep this if you already have it)
+if (!isset($_SESSION['user_id'])) {
+    header("Location: Login.php");
+    exit();
 }
 
 ?>

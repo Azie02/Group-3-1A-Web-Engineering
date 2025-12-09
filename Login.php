@@ -3,7 +3,7 @@
 session_start();
 
 // Database connection parameters
-$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3307);
+$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3306);
 
 // Check if database connection failed
 if ($conn->connect_error) {
@@ -78,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
                     $_SESSION['user_id'] = $username;
                     $_SESSION['type_user'] = $userType;
                     $_SESSION['user_data'] = $user;
+                    $_SESSION['last_activity'] = time();
 
                     // Redirect
                     switch ($userType) {
