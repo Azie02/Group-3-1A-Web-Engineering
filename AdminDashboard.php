@@ -148,13 +148,30 @@ $sql = "
     $search_results = $stmt->get_result();
 }
 
+// 20 seconds inactivity timeout
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 20) {
+    session_unset();
+    session_destroy();
+    header("Location: Login.php");
+    exit();
+}
+
+// Update activity time on every request
+$_SESSION['last_activity'] = time();
+
+// Existing security check (keep this if you already have it)
+if (!isset($_SESSION['user_id'])) {
+    header("Location: Login.php");
+    exit();
+}
+
 ?>
 
 <!DOCTYPE html>
 <html>
     <head>
         <title>Admin Dashboard</title>
-        <meta name="desription" content="SecurityStaffDashboard">
+        <meta name="desription" content="AdminDashboard">
         <meta name="author" content="Group1A3">
         <style>
             body {
@@ -416,10 +433,10 @@ $sql = "
         </header>
         
         <nav class="sidebar">
-            <h1 class="sidebartitle">Security Staff Bar</h1>
+            <h1 class="sidebartitle">Admin Bar</h1>
             <ul class="menu">
                 <li>
-                    <a href="SecurityStaffDashboard.php" class="menutext active">Dashboard</a>
+                    <a href="AdminDashboard.php" class="menutext active">Dashboard</a>
                 </li>
                 <li>
                     <a href="ManageUser.php" class="menutext">Manage User</a>
