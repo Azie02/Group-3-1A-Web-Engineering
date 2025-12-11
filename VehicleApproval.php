@@ -60,11 +60,46 @@ $result = $conn->query($sql);
     </nav>
 
     <div class="maincontent">
-        
         <div class="header" style="position: static; margin-bottom: 20px; height: auto;">
             <h1>Vehicle Approval Request</h1>
         </div>
 
+        <div class="table-container">
+            <table>
+                <tr>
+                    <th>Vehicle ID</th>
+                    <th>Student ID</th>
+                    <th>Type</th>
+                    <th>Plate No.</th>
+                    <th>Model</th>
+                    <th>Colour</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+
+                <?php
+                if ($result->num_rows > 0) {
+                    while($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . $row['VehicleID'] . "</td>";
+                        echo "<td>" . $row['StudentID'] . "</td>";
+                        echo "<td>" . $row['VehicleType'] . "</td>";
+                        echo "<td>" . $row['PlateNumber'] . "</td>";
+                        echo "<td>" . $row['VehicleModel'] . "</td>";
+                        echo "<td>" . $row['VehicleColour'] . "</td>";
+                        echo "<td>" . $row['VehicleStatus'] . "</td>";
+                        echo "<td>";
+                        echo "<button class='btn-approve'>Approve</button> ";
+                        echo "<button class='btn-reject'>Reject</button>";
+                        echo "</td>";
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='8'>No records found</td></tr>";
+                }
+                ?>
+            </table>
+        </div>
         
     </div>
 
