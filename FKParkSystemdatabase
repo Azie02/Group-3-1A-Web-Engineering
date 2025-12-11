@@ -29,6 +29,8 @@ CREATE TABLE Vehicle (
     PlateNumber VARCHAR(20),
     VehicleModel VARCHAR(50),
     VehicleColour VARCHAR(30),
+    VehicleGrant BLOB,
+    VehicleStatus VARCHAR(20),
     FOREIGN KEY (StudentID) REFERENCES Student(StudentID)
 );
 

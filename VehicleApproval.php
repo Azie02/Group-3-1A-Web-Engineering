@@ -9,28 +9,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     exit();
 }
 
-// Get staff data from database
-$staff_id = $_SESSION['user_id'];
-$query = "SELECT * FROM staff WHERE staffID = ?";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("s", $staff_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows !== 1) {
-    // Staff not found in database
-    session_destroy();
-    header("Location: Login.php");
-    exit();
-}
-$staff = $result->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Security Staff Dashboard</title>
-    <meta name="desription" content="SecurityStaffDashboard">
+    <title>Vehicle Approval - Security Staff</title>
+    <meta name="description" content="Vehicle Approval Page">
     <meta name="author" content="Group1A3">
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -47,20 +32,20 @@ $staff = $result->fetch_assoc();
             <a href="SecurityStaffProfile.php" class="profile">
                 <i class="fas fa-user-circle"></i> My Profile
             </a>
-            <a href="logout.php" class="logoutbutton">
+            <a href="logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
         </div>
     </header>
-
+    
     <nav class="sidebar">
         <h1 class="sidebartitle">Security Staff Bar</h1>
         <ul class="menu">
             <li>
-                <a href="SecurityStaffDashboard.php" class="menutext active">Dashboard</a>
+                <a href="SecurityStaffDashboard.php" class="menutext">Dashboard</a>
             </li>
             <li>
-                <a href="VehicleApproval.php" class="menutext">Vehicle Approval</a>
+                <a href="VehicleApproval.php" class="menutext active">Vehicle Approval</a>
             </li>
             <li>
                 <a href="RecordSummon.php" class="menutext">Record Summon</a>
@@ -72,32 +57,17 @@ $staff = $result->fetch_assoc();
     </nav>
 
     <div class="maincontent">
-        <div class="content">
-            <center>
-                <h2>Welcome to FK Parking Management System</h2>
-            </center>
-            </div>
+        
+        <div class="header" style="position: static; margin-bottom: 20px; height: auto;">
+            <h1>Vehicle Approval Request</h1>
 
-        <div class="seccontent">
-            <div class="cards">
-                <div class="card">Parking Areas</div>
-                <div class="card">Total Spaces</div>
-                <div class="card">Total Available</div>
-            </div>
-
-            <div class="charts">
-                <div class="chart">Traffic Summon Chart</div>
-                <div class="chart">Violation Chart</div>
-            </div>
         </div>
     </div>
+
     <footer>
-        <center>
-            <p> © 2025 FKPark System</p>
-        </center>
+        <center><p> © 2025 FKPark System</p></center>
     </footer>
 
     <script src="SecurityDashboard.js"></script>
 </body>
-
 </html>
