@@ -1,8 +1,6 @@
-//Create Database If blum buat lgi
 CREATE DATABASE fkparksystem;
 USE fkparksystem;
 
-//Create Table
 CREATE TABLE Student (
     StudentID VARCHAR(10) PRIMARY KEY,
     StudentName VARCHAR(100),
@@ -106,7 +104,6 @@ CREATE TABLE TrafficSummon (
     FOREIGN KEY (ViolationID) REFERENCES Violation(ViolationID)
 );
 
-//Insert data
 INSERT INTO Student VALUES
 ('CB23067', 'Farid Kamal', '012-3456789', 'faridkamal@gmail.com', 'Farid.jpg', 'farid1234'),
 ('CB23028', 'Nur Alia', '013-9988776', 'aliazahra@gmail.com', 'Alia.jpg', 'Alia@123'),
