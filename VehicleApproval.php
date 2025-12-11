@@ -8,6 +8,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     header("Location: Login.php");
     exit();
 }
+// Fetch all vehicles from the database
+$sql = "SELECT * FROM Vehicle";
+$result = $conn->query($sql);
 
 ?>
 
@@ -60,8 +63,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
         
         <div class="header" style="position: static; margin-bottom: 20px; height: auto;">
             <h1>Vehicle Approval Request</h1>
-
         </div>
+
+        
     </div>
 
     <footer>
