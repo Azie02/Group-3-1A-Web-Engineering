@@ -49,6 +49,10 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Fetch parking areas from database
+$parkingQuery = "SELECT * FROM parkingarea";
+$parkingResult = $conn->query($parkingQuery);
+
 ?>
 
 <!DOCTYPE html>
@@ -285,39 +289,31 @@ if (!isset($_SESSION['user_id'])) {
         <div class="maincontent">
             <div class="content">
                 <center><h2>Parking Area</h2></center>
-                <a class="btn-add" href="#">Add Areas</a>
+                <a class="btn-add" href="AddParkingArea.php">Add Areas</a>
                 <br><br>
 
                 <table>
                 <tr>
-                    <th>Area</th>
+                    <th>Area Number</th>
                     <th>Type</th>
-                    <th>Status</th>
                     <th>Total Spaces</th>
                     <th>Action</th>
                 </tr>
 
+                <?php while ($row = $parkingResult->fetch_assoc()) { ?>
                 <tr>
-                    <td>A1</td>
-                    <td>Staff</td>
-                    <td>Open</td>
-                    <td>50</td>
+                    <td><?= htmlspecialchars($row['AreaNumber']) ?></td>
+                    <td><?= htmlspecialchars($row['AreaType']) ?></td>
+                    <td><?= htmlspecialchars($row['TotalSpaces']) ?></td>
                     <td class="action-links">
-                        <a href="#">View</a>
-                        <a href="#">Delete</a>
+                    <a href="ParkingSpaces.php?id=<?= $row['ParkingAreaID'] ?>">View</a>
+                    <a href="DeleteParkingArea.php?id=<?= $row['ParkingAreaID'] ?>"
+                    onclick="return confirm('Are you sure you want to delete this parking area?');">
+                    Delete
+                    </a>
                     </td>
                 </tr>
-
-                <tr>
-                    <td>B1</td>
-                    <td>Student</td>
-                    <td>Closed</td>
-                    <td>60</td>
-                    <td class="action-links">
-                        <a href="#">View</a>
-                        <a href="#">Delete</a>
-                    </td>
-                </tr>
+                <?php } ?>
             </table>
             </div>
         </div>
