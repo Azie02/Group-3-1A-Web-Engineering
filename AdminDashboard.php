@@ -62,11 +62,10 @@ $sql = "
 
     UNION
 
-    /* MERIT */
+    /* MERIT - FIXED: Removed TotalMeritPoint */
     SELECT 'StudentMerit' AS Type,
            MeritID AS ID,
-           CONCAT('Merit: ', MeritPoint, ', Demerit: ', DemeritPoint,
-                  ', Total: ', TotalMeritPoint) AS info
+           CONCAT('Merit: ', MeritPoint, ', Demerit: ', DemeritPoint) AS info
     FROM StudentMerit
     WHERE MeritID LIKE ?
        OR MeritPoint LIKE ?
@@ -116,7 +115,6 @@ $sql = "
        OR AreaType LIKE ?
        OR AreaNumber LIKE ?
 ";
-
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param(
@@ -173,6 +171,8 @@ if (!isset($_SESSION['user_id'])) {
         <title>Admin Dashboard</title>
         <meta name="desription" content="AdminDashboard">
         <meta name="author" content="Group1A3">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        
         <style>
             body {
                background-color: #f5f5f5;
@@ -230,10 +230,11 @@ if (!isset($_SESSION['user_id'])) {
                 position: fixed;
                 top: 120px;
                 left: 0;
-                bottom: 0;
+                height: calc(100vh - 120px);
                 padding: 20px 0;
                 box-sizing: border-box;
                 transition: transform 0.3s ease;
+                overflow-y: auto;
             }
 
             .sidebartitle{
@@ -261,12 +262,16 @@ if (!isset($_SESSION['user_id'])) {
                 transition: all 0.2s;
                 display: flex;
                 align-items: center;
-                gap: 20px;
+                gap: 15px;
             }
 
             .menu a {
                 text-decoration: none;
                 color: inherit;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                width: 100%;
             }
             
             .menutext:hover {
@@ -316,6 +321,8 @@ if (!isset($_SESSION['user_id'])) {
                margin-top: 120px;
                padding: 40px;
                box-sizing: border-box;
+               min-height: calc(100vh - 120px);
+               width: calc(100% - 250px);
             }
 
             .content {
@@ -347,6 +354,9 @@ if (!isset($_SESSION['user_id'])) {
                 border-radius: 5px;
                 padding: 10px 18px;
                 cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
 
             .search-results {
@@ -365,34 +375,30 @@ if (!isset($_SESSION['user_id'])) {
             }
 
             /* Cards */
-            .cards {
+            .cards-container {
                 display: flex;
                 gap: 20px;
                 margin-bottom: 30px;
-                align-items: center;
-                text-align: center;
-                background: #ffffffff;
-                color: #ffffffff;
-                border-radius: 10px;
-                padding: 0.8em 0.7em 0.8em 0.7em;
-                min-width: 140px;
-                min-height: 74px;
-                box-shadow: 0 2px 9px rgba(0, 0, 0, 0.09);
-                flex: 1 1 160px;
             }
 
             .card {
                 background: #3f1174ff;
-                padding: 50px;
-                border: 1px solid #ccc;
-                width: 180px;
+                color: white;
+                padding: 30px;
                 text-align: center;
-                border-radius: 5px;
+                border-radius: 8px;
                 font-weight: bold;
+                flex: 1;
+                min-height: 120px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                box-shadow: 0 2px 15px rgba(0,0,0,0.1);
             }
 
             /* Charts */
-            .charts {
+            .charts-container {
                display: flex;
                gap: 20px;
             }
@@ -402,22 +408,30 @@ if (!isset($_SESSION['user_id'])) {
               background: white;
               padding: 30px;
               border: 1px solid #ccc;
-              height: 200px;
+              min-height: 200px;
               text-align: center;
               border-radius: 5px;
               font-weight: bold;
+              display: flex;
+              justify-content: center;
+              align-items: center;
             }
 
             footer {
                background-color: #b8a6ccff;
                color: white;
                padding: 15px 0;
+               text-align: center;
+               width: 100%;
+               margin-top: auto;
+               position: relative;
+               z-index: 800;
             }
         </style>
     </head>
     <body>
         <header class="header">
-            <div class="header_left">
+            <div class="header-left">
                 <div class="logo">
                 <img src="UMPLogo.png" alt="UMPLogo">
                 </div>
@@ -436,16 +450,24 @@ if (!isset($_SESSION['user_id'])) {
             <h1 class="sidebartitle">Admin Bar</h1>
             <ul class="menu">
                 <li>
-                    <a href="AdminDashboard.php" class="menutext active">Dashboard</a>
+                    <a href="AdminDashboard.php" class="menutext active">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
                 </li>
                 <li>
-                    <a href="ManageUser.php" class="menutext">Manage User</a>
+                    <a href="ManageUser.php" class="menutext">
+                        <i class="fas fa-users"></i> Manage User
+                    </a>
                 </li>
                 <li>
-                    <a href="ParkingManagement.php" class="menutext">Parking Management</a>
+                    <a href="ParkingManagement.php" class="menutext">
+                        <i class="fas fa-parking"></i> Parking Management
+                    </a>
                 </li>
                 <li>
-                    <a href="Report.php" class="menutext">Report</a>
+                    <a href="Report.php" class="menutext">
+                        <i class="fas fa-chart-bar"></i> Report
+                    </a>
                 </li>
             </ul>
         </nav>
@@ -455,8 +477,10 @@ if (!isset($_SESSION['user_id'])) {
                 <center><h2>Welcome to FK Parking Management System</h2></center>
         
                 <form class="searchbar" method="GET" action="">
-                    <input name="fsrch" id="fsrch" placeholder="Type Search">
-                    <button type="submit">Search</button>
+                    <input name="fsrch" id="fsrch" placeholder="Type Search...">
+                    <button type="submit">
+                        <i class="fas fa-search"></i> Search
+                    </button>
                 </form>
                 
                 <?php if (!empty($_GET['fsrch'])): ?>
@@ -481,21 +505,21 @@ if (!isset($_SESSION['user_id'])) {
             </div> 
 
             <div class="seccontent">
-                <div class="cards">
+                <div class="cards-container">
                    <div class="card">Parking Areas</div>
                    <div class="card">Total Spaces</div>
                    <div class="card">Total Available</div>
                 </div>
 
-               <div class="charts">
+               <div class="charts-container">
                    <div class="chart">Traffic Summon Chart</div>
                    <div class="chart">Violation Chart</div>
                </div>
            </div>
         </div>
+        
         <footer>
             <center><p> © 2025 FKPark System</p></center>
         </footer>
     </body>
 </html>
-
