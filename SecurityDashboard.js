@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-     // --- Logout Functionality ---
+     // Logout
     const logoutBtn = document.querySelector('.logoutbutton');
 
     if (logoutBtn) {

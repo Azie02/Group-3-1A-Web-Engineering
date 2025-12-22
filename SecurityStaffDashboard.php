@@ -27,8 +27,9 @@ $staff = $result->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Security Staff Dashboard</title>
     <meta name="desription" content="SecurityStaffDashboard">
     <meta name="author" content="Group1A3">
@@ -73,10 +74,12 @@ $staff = $result->fetch_assoc();
 
     <div class="maincontent">
         <div class="content">
-            <center>
-                <h2>Welcome to FK Parking Management System</h2>
-            </center>
-            </div>
+            <center><h2>Welcome to FK Parking Management System</h2></center>
+            <form action="SecurityStaffDashboard.php" method="get" class="searchbar">
+                <input type="text" name="search" placeholder="Search..." value="<?php echo $search; ?>">
+                <button type="submit">Search</button>
+            </form>
+        </div>
 
         <div class="seccontent">
             <div class="cards">
