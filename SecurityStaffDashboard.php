@@ -423,6 +423,9 @@ if (!isset($_SESSION['user_id'])) {
                 </div>
             </div>
             <div class="header-right">
+                <span style="color:white; font-weight:500;">
+                    Welcome, <?php echo htmlspecialchars($staff['StaffName']); ?>
+                </span>
                 <a href="SecurityStaffProfile.php" class="profile">
                     <i class="fas fa-user-circle"></i> My Profile
                 </a>
@@ -498,4 +501,3 @@ if (!isset($_SESSION['user_id'])) {
         </footer>
     </body>
 </html>
-

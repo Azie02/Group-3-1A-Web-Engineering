@@ -351,6 +351,9 @@ if (!isset($_SESSION['user_id'])) {
                 </div>
             </div>
             <div class="header-right">
+                <span style="color:white; font-weight:500;">
+                    Welcome, <?php echo htmlspecialchars($student['StudentName']); ?>
+                </span>
                 <a href="StudentProfile.php" class="profile">
                     <i class="fas fa-user-circle"></i> My Profile
                 </a>
@@ -381,7 +384,6 @@ if (!isset($_SESSION['user_id'])) {
         <div class="maincontent">
             <div class="content">
                 <center><h2>Welcome to FK Parking Management System</h2></center>
-        
                 <form class="searchbar" method="GET" action="">
                     <input name="fsrch" id="fsrch" placeholder="Type Search">
                     <button type="submit">Search</button>
@@ -426,4 +428,3 @@ if (!isset($_SESSION['user_id'])) {
         </footer>
     </body>
 </html>
-
