@@ -87,7 +87,7 @@ $result = $conn->query($sql);
 
     <div class="maincontent">
         <div class="content">
-            <center><h2>Vehicle Approval Management</h2></center>
+            <center><h2>Vehicle Approval</h2></center>
             
             <form action="VehicleApproval.php" method="get" class="searchbar">
                 <input type="text" name="search" placeholder="Search by ID or Plate.." value="<?php echo $search; ?>">

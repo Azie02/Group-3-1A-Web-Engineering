@@ -171,10 +171,10 @@
                             <label for="violation_id">Violation Type</label>
                             <select id="violation_id" name="violation_id" required>
                                 <option value="" disabled selected>Select Violation</option>
-                                <option value="V001">Illegal Parking</option>
-                                <option value="V002">No Valid Sticker</option>
-                                <option value="V003">Expired Roadtax</option>
-                                <option value="V004">Reckless Driving</option>
+                                <option value="V001">Violation 1</option>
+                                <option value="V002">Violation 2</option>
+                                <option value="V003">Violation 3</option>
+                                <option value="V004">Violation 4</option>
                             </select>
                         </div>
 
@@ -186,22 +186,18 @@
 
                         
                         <div class="input-group">
-                            <label for="summon_date">Date of Violation</label>
+                            <label for="summon_date">Violation Date</label>
                             <input type="date" id="summon_date" name="summon_date" required>
                         </div>
                         <div class="input-group">
-                            <label for="summon_time">Time of Violation</label>
+                            <label for="summon_time">Violation Time</label>
                             <input type="time" id="summon_time" name="summon_time" required>
                         </div>
                     </div>
 
                     <div class="action-bar">
-                        <button type="reset" class="profile" style="background:#eee; color:#444; border:none;">
-                            Clear Form
-                        </button>
-                        <button type="submit" class="btn-submit">
-                            <i class="fas fa-paper-plane"></i> Record Summon
-                        </button>
+                        <button type="reset" class="profile" style="background:#eee; color:#444; border:none;">Clear Form</button>
+                        <button type="submit" class="btn-submit">Record Summon</button>
                     </div>
                 </form>
             </div>

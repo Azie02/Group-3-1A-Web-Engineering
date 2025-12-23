@@ -9,14 +9,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     exit();
 }
 
-// Get Vehicle ID from URL
 $vehicleID = isset($_GET['id']) ? $_GET['id'] : null;
 if (!$vehicleID) {
     echo "<script>alert('No vehicle ID provided.'); window.location.href='VehicleApproval.php';</script>";
     exit();
 }
 
-// Handle Approval/Rejection Form Submission
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $status = ($_POST['action'] === 'approve') ? 'Approved' : 'Rejected';
@@ -30,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Fetch Vehicle Details with Student Info
+// GET Vehicle Details with Student Table
 $sql = "SELECT v.*, s.StudentName 
         FROM Vehicle v 
         LEFT JOIN Student s ON v.StudentID = s.StudentID 
@@ -44,7 +42,6 @@ if (!$vehicle) {
     exit();
 }
 
-// Handle BLOB Image for VehicleGrant
 $imageData = null;
 if (!empty($vehicle['VehicleGrant'])) {
     $base64Image = base64_encode($vehicle['VehicleGrant']);

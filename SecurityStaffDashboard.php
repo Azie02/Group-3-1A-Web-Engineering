@@ -8,6 +8,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     header("Location: Login.php");
     exit();
 }
+$search = "";
+if (isset($_GET['search'])) {
+    $search = $_GET['search'];
+}
 
 // Get staff data from database
 $staff_id = $_SESSION['user_id'];
@@ -18,7 +22,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows !== 1) {
-    // Staff not found in database
     session_destroy();
     header("Location: Login.php");
     exit();
