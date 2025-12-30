@@ -8,25 +8,34 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     header("Location: Login.php");
     exit();
 }
-$search = "";
-if (isset($_GET['search'])) {
-    $search = $_GET['search'];
+
+$totalSummonsQuery = "SELECT COUNT(*) as count FROM TrafficSummon";
+$totalSummons = $conn->query($totalSummonsQuery)->fetch_assoc()['count'];
+
+$pendingVehiclesQuery = "SELECT COUNT(*) as count FROM Vehicle WHERE VehicleStatus = 'Pending'";
+$pendingVehicles = $conn->query($pendingVehiclesQuery)->fetch_assoc()['count'];
+
+$violationData = [];
+$violationLabels = [];
+$vQuery = "SELECT v.ViolationType, COUNT(ts.SummonID) as count 
+           FROM TrafficSummon ts 
+           JOIN Violation v ON ts.ViolationID = v.ViolationID 
+           GROUP BY v.ViolationType";
+$vResult = $conn->query($vQuery);
+while($row = $vResult->fetch_assoc()) {
+    $violationLabels[] = $row['ViolationType'];
+    $violationData[] = $row['count'];
 }
 
-// Get staff data from database
-$staff_id = $_SESSION['user_id'];
-$query = "SELECT * FROM staff WHERE staffID = ?";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("s", $staff_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows !== 1) {
-    session_destroy();
-    header("Location: Login.php");
-    exit();
+$trendData = [];
+$trendLabels = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $trendLabels[] = date('M d', strtotime($date));
+    
+    $tQuery = "SELECT COUNT(*) as count FROM TrafficSummon WHERE SummonDate = '$date'";
+    $trendData[] = $conn->query($tQuery)->fetch_assoc()['count'];
 }
-$staff = $result->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
@@ -34,76 +43,185 @@ $staff = $result->fetch_assoc();
 <head>
     <meta charset="UTF-8">
     <title>Security Staff Dashboard</title>
-    <meta name="desription" content="SecurityStaffDashboard">
-    <meta name="author" content="Group1A3">
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-info {
+            text-align: center;
+        }
+
+        .stat-info h3 {
+            margin: 0;
+            font-size: 2rem;
+            color: #333;
+        }
+
+        .stat-info p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .chart-box h3 {
+            margin-top: 0;
+            color: #444;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        @media (max-width: 900px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <header class="header">
-        <div class="header_left">
+        <div class="header-left">
             <div class="logo">
                 <img src="UMPLogo.png" alt="UMPLogo">
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile">
-                <i class="fas fa-user-circle"></i> My Profile
-            </a>
-            <a href="logout.php" class="logoutbutton">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
+            <a href="SecurityStaffProfile.php" class="profile"></i>My Profile</a>
+            <a href="logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i>Logout</a>
         </div>
     </header>
-
+    
     <nav class="sidebar">
         <h1 class="sidebartitle">Security Staff Bar</h1>
         <ul class="menu">
-            <li>
-                <a href="SecurityStaffDashboard.php" class="menutext active">Dashboard</a>
-            </li>
-            <li>
-                <a href="VehicleApproval.php" class="menutext">Vehicle Approval</a>
-            </li>
-            <li>
-                <a href="RecordSummon.php" class="menutext">Record Summon</a>
-            </li>
-            <li>
-                <a href="ManageSummon.php" class="menutext">Manage Summon</a>
-            </li>
+            <li><a href="SecurityStaffDashboard.php" class="menutext active">Dashboard</a></li>
+            <li><a href="VehicleApproval.php" class="menutext">Vehicle Approval</a></li>
+            <li><a href="TrafficSummon.php" class="menutext">Trafic Summon</a></li>
         </ul>
     </nav>
 
     <div class="maincontent">
-        <div class="content">
-            <center><h2>Welcome to FK Parking Management System</h2></center>
-            <form action="SecurityStaffDashboard.php" method="get" class="searchbar">
-                <input type="text" name="search" placeholder="Search..." value="<?php echo $search; ?>">
-                <button type="submit">Search</button>
-            </form>
-        </div>
+        <div class="content" style="background: transparent; box-shadow: none; padding: 0;">
+            <h2 style="margin-bottom: 25px; color: #333;">Dashboard Overview</h2>
 
-        <div class="seccontent">
-            <div class="cards">
-                <div class="card">Parking Areas</div>
-                <div class="card">Total Spaces</div>
-                <div class="card">Total Available</div>
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3><?php echo $totalSummons; ?></h3>
+                        <p>Total Summons Issued</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3><?php echo $pendingVehicles; ?></h3>
+                        <p>Pending Approvals</p>
+                    </div>
+                </div>
             </div>
 
-            <div class="charts">
-                <div class="chart">Traffic Summon Chart</div>
-                <div class="chart">Violation Chart</div>
+            <div class="charts-container">
+                <div class="chart-box">
+                    <h3>Summons by Violation Type</h3>
+                    <canvas id="violationChart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h3>Summons Issued (Last 7 Days)</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
+
     <footer>
-        <center>
-            <p> © 2025 FKPark System</p>
-        </center>
+        <center><p> © 2025 FKPark System</p></center>
     </footer>
 
-    <script src="SecurityDashboard.js"></script>
-</body>
+    <script>
+        const violationLabels = <?php echo json_encode($violationLabels); ?>;
+        const violationData = <?php echo json_encode($violationData); ?>;
+        const trendLabels = <?php echo json_encode($trendLabels); ?>;
+        const trendData = <?php echo json_encode($trendData); ?>;
 
+        // Bar Chart
+        const ctx1 = document.getElementById('violationChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: violationLabels,
+                datasets: [{
+                    label: 'Count',
+                    data: violationData,
+                    backgroundColor: '#eb9d43ff',
+                    borderColor: '#d68a35',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Line Chart
+        const ctx2 = document.getElementById('trendChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Summons Issued',
+                    data: trendData,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    </script>
+</body>
 </html>

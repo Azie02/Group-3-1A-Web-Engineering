@@ -23,12 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $updateSql = "UPDATE Vehicle SET VehicleStatus = '$status' WHERE VehicleID = '$vehicleID'";
     if ($conn->query($updateSql) === TRUE) {
         $message = "Vehicle registration has been updated to: " . $status;
-    } else {
+    } else { 
         $message = "Error updating record: " . $conn->error;
     }
 }
 
-// GET Vehicle Details with Student Table
 $sql = "SELECT v.*, s.StudentName 
         FROM Vehicle v 
         LEFT JOIN Student s ON v.StudentID = s.StudentID 
@@ -57,107 +56,176 @@ if (!empty($vehicle['VehicleGrant'])) {
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .detail-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 20px;
+        .details-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
         }
-        .detail-item {
-            padding: 15px;
-            background: #fafafa;
-            border: 1px solid #eee;
-            border-radius: 5px;
+
+        .header-section {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .detail-item label {
-            display: block;
-            font-weight: bold;
-            color: #555;
-            font-size: 0.85rem;
-            margin-bottom: 5px;
-        }
-        .detail-item span {
-            font-size: 1.1rem;
+
+        .header-section h2 {
+            margin: 0;
             color: #333;
         }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .info-group {
+            margin-bottom: 20px;
+        }
+
+        .info-group label {
+            display: block;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .info-group .value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #666;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            color: #333;
+        }
+
         .status-badge {
-            padding: 4px 10px;
-            border-radius: 4px;
+            padding: 5px 12px;
+            border-radius: 20px;
             font-weight: bold;
             font-size: 0.9rem;
+            display: inline-block;
         }
         .Pending { background-color: #ffeeba; color: #856404; }
         .Approved { background-color: #d4edda; color: #155724; }
         .Rejected { background-color: #f8d7da; color: #721c24; }
 
         .grant-section {
-            margin-top: 25px;
-            padding: 20px;
-            background: #fafafa;
-            border: 1px solid #eee;
-            border-radius: 5px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
             text-align: center;
         }
-        .grant-section label {
-            display: block;
-            font-weight: bold;
-            color: #555;
-            font-size: 0.85rem;
-            margin-bottom: 5px;
-        }
+
         .grant-photo {
             max-width: 100%;
-            max-height: 500px;
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            display: block;
-            margin: 0 auto;
+            max-height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
+
         .no-photo {
-            padding: 40px;
+            padding: 30px;
             color: #999;
             font-style: italic;
+            background: #f9f9f9;
+            border-radius: 4px;
         }
 
         .action-container {
             margin-top: 30px;
             padding: 20px;
-            background: #fff;
-            border: 1px solid #ddd;
+            background: #f8f9fa;
             border-radius: 8px;
+            border: 1px solid #e9ecef;
         }
+
+        .action-container label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+
         .action-container textarea {
             width: 100%;
             padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
             border-radius: 4px;
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
         }
+
         .btn-group {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 15px;
         }
+
         .btn {
-            padding: 10px 20px;
+            flex: 1;
+            padding: 12px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
             color: white;
             text-transform: uppercase;
+            font-size: 0.9rem;
+            transition: opacity 0.3s;
         }
-        .btn-approve { background-color: #28a745; }
-        .btn-reject { background-color: #dc3545; }
+
+        .btn:hover {
+            opacity: 0.9; 
+        }
+
+        .btn-approve {
+            background-color: #28a745;
+        }
+
+        .btn-reject {
+            background-color: #dc3545;
+        }
+
         .alert {
             padding: 15px;
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-            margin-bottom: 20px;
             border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
     </style>
 </head>
@@ -169,97 +237,98 @@ if (!empty($vehicle['VehicleGrant'])) {
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile">
-                <i class="fas fa-user-circle"></i> My Profile
-            </a>
-            <a href="logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
+            <a href="SecurityStaffProfile.php" class="profile"></i>My Profile</a>
+            <a href="logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');"></i>Logout</a>
         </div>
     </header>
-    
+
     <nav class="sidebar">
         <h1 class="sidebartitle">Security Staff Bar</h1>
         <ul class="menu">
             <li><a href="SecurityStaffDashboard.php" class="menutext">Dashboard</a></li>
             <li><a href="VehicleApproval.php" class="menutext active">Vehicle Approval</a></li>
-            <li><a href="RecordSummon.php" class="menutext">Record Summon</a></li>
-            <li><a href="ManageSummon.php" class="menutext">Manage Summon</a></li>
+            <li><a href="TrafficSummon.php" class="menutext">Trafic Summon</a></li>
         </ul>
     </nav>
 
     <div class="maincontent">
         <div class="content">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>Registration Details</h2>
-                <a href="VehicleApproval.php" style="color: #eb9d43ff; text-decoration: none;">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                </a>
-            </div>
+            <a href="VehicleApproval.php" class="back-link"><i class="fas fa-arrow-left"></i> Back to List</a>
 
-            <?php if ($message != ""): ?>
-                <div class="alert"><?php echo $message; ?></div>
-            <?php endif; ?>
+            <div class="details-container">
+                <?php if ($message != ""): ?>
+                    <div class="alert <?php echo strpos($message, 'Error') === false ? 'alert-success' : 'alert-error'; ?>">
+                        <?php echo $message; ?>
+                    </div>
+                <?php endif; ?>
 
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <label>Registration ID</label>
-                    <span><?php echo $vehicle['VehicleID']; ?></span>
-                </div>
-                <div class="detail-item">
-                    <label>Current Status</label>
+                <div class="header-section">
+                    <div>
+                        <h2>Vehicle Registration Details</h2>
+                        <span style="color: #666; font-size: 0.9rem;">Ref ID: <?php echo $vehicle['VehicleID']; ?></span>
+                    </div>
                     <span class="status-badge <?php echo $vehicle['VehicleStatus']; ?>">
                         <?php echo $vehicle['VehicleStatus']; ?>
                     </span>
                 </div>
-                <div class="detail-item">
-                    <label>Student ID</label>
-                    <span><?php echo $vehicle['StudentID']; ?></span>
-                </div>
-                <div class="detail-item">
-                    <label>Student Name</label>
-                    <span><?php echo $vehicle['StudentName'] ? $vehicle['StudentName'] : 'N/A'; ?></span>
-                </div>
-                <div class="detail-item">
-                    <label>Vehicle Type</label>
-                    <span><?php echo $vehicle['VehicleType']; ?></span>
-                </div>
-                <div class="detail-item">
-                    <label>Plate Number</label>
-                    <span><?php echo $vehicle['PlateNumber']; ?></span>
-                </div>
-                <div class="detail-item">
-                    <label>Vehicle Model</label>
-                    <span><?php echo $vehicle['VehicleModel']; ?></span>
-                </div>
-                <div class="detail-item">
-                    <label>Vehicle Colour</label>
-                    <span><?php echo $vehicle['VehicleColour']; ?></span>
-                </div>
-            </div>
 
-            <div class="grant-section">
-                <label>Vehicle Grant</label>
-                <?php if ($imageData): ?>
-                    <img src="<?php echo $imageData; ?>" alt="Vehicle Grant" class="grant-photo">
-                <?php else: ?>
-                    <div class="no-photo">
-                        <i class="fas fa-image fa-3x"></i><br><br>
-                        No document found in the database.
+                <div class="info-grid">
+                    <div>
+                        <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">Applicant Details</h3>
+                        <div class="info-group">
+                            <label>Student Name</label>
+                            <div class="value"><?php echo $vehicle['StudentName'] ? $vehicle['StudentName'] : 'N/A'; ?></div>
+                        </div>
+                        <div class="info-group">
+                            <label>Student ID</label>
+                            <div class="value"><?php echo $vehicle['StudentID']; ?></div>
+                        </div>
                     </div>
-                <?php endif; ?>
-            </div>
 
-            <div class="action-container">
-                <form action="ReviewVehicle.php?id=<?php echo $vehicleID; ?>" method="POST">
-                    <label for="remark">Notes/Reason:</label>
-                    <textarea name="remark" id="remark" placeholder="Enter review notes.."></textarea>
-                    
-                    <div class="btn-group">
-                        <button type="submit" name="action" value="approve" class="btn btn-approve" onclick="return confirm('Confirm Approval?');">Approve</button>
-                        <button type="submit" name="action" value="reject" class="btn btn-reject" onclick="return confirm('Confirm Rejection?');">Reject</button>
+                    <div>
+                        <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">Vehicle Details</h3>
+                        <div class="info-group">
+                            <label>Plate Number</label>
+                            <div class="value"><?php echo $vehicle['PlateNumber']; ?></div>
+                        </div>
+                        <div class="info-group">
+                            <label>Vehicle Type</label>
+                            <div class="value"><?php echo $vehicle['VehicleType']; ?></div>
+                        </div>
+                        <div class="info-group">
+                            <label>Model & Colour</label>
+                            <div class="value"><?php echo $vehicle['VehicleModel'] . " (" . $vehicle['VehicleColour'] . ")"; ?></div>
+                        </div>
                     </div>
-                </form>
+                </div>
+
+                <div class="grant-section">
+                    <h3 style="color: #666; font-size: 1rem; margin-bottom: 15px;">Vehicle Grant Document</h3>
+                    <?php if ($imageData): ?>
+                        <img src="<?php echo $imageData; ?>" alt="Vehicle Grant" class="grant-photo">
+                    <?php else: ?>
+                        <div class="no-photo">
+                            <i class="fas fa-file-image fa-2x"></i><br>
+                            No document image found in database.
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="action-container">
+                    <form action="ReviewVehicle.php?id=<?php echo $vehicleID; ?>" method="POST">
+                        <label for="remark"><i class="fas fa-pen"></i> Review Notes / Reason</label>
+                        <textarea name="remark" id="remark" placeholder="Enter reason for approval or rejection..."></textarea>
+                        
+                        <div class="btn-group">
+                            <button type="submit" name="action" value="approve" class="btn btn-approve" onclick="return confirm('Confirm Approval?');">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button type="submit" name="action" value="reject" class="btn btn-reject" onclick="return confirm('Confirm Rejection?');">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

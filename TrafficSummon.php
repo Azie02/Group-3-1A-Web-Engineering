@@ -14,11 +14,15 @@ if (isset($_GET['search'])) {
     $search = $_GET['search'];
 }
 
-$sql = "SELECT * FROM Vehicle";
+$sql = "SELECT ts.*, v.ViolationType, veh.PlateNumber
+        FROM TrafficSummon ts 
+        LEFT JOIN Violation v ON ts.ViolationID = v.ViolationID
+        LEFT JOIN Vehicle veh ON ts.StudentID = veh.StudentID";
 
 if ($search != "") {
-    $sql = "SELECT * FROM Vehicle WHERE StudentID LIKE '%$search%' OR PlateNumber LIKE '%$search%'";
+    $sql .= " WHERE ts.StudentID LIKE '%$search%' OR ts.SummonID LIKE '%$search%'";
 }
+
 
 $result = $conn->query($sql);
 ?>
@@ -27,13 +31,13 @@ $result = $conn->query($sql);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Vehicle Approval</title>
-    <meta name="description" content="Vehicle Approval Page">
+    <title>Traffic Summon Management</title>
+    <meta name="description" content="Traffic Summon Page">
     <meta name="author" content="Group1A3">
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .review {
+        .view-btn {
             background-color: #eb9d43ff;
             color: white;
             padding: 6px 12px;
@@ -44,8 +48,45 @@ $result = $conn->query($sql);
             transition: background 0.3s;
         }
 
-        .review:hover {
+        .view-btn:hover {
             background-color: #6d4e2aff;
+        }
+
+        .header-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .header-wrapper h2 {
+            margin: 0;
+        }
+
+        .add-btn {
+            position: absolute;
+            right: 0;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .add-btn:hover {
+            background-color: #218838;
+        }
+
+        .searchbar {
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -58,7 +99,7 @@ $result = $conn->query($sql);
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile">My Profile</a>
+            <a href="SecurityStaffProfile.php" class="profile"></i>My Profile</a>
             <a href="logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i>Logout</a>
         </div>
     </header>
@@ -67,16 +108,22 @@ $result = $conn->query($sql);
         <h1 class="sidebartitle">Security Staff Bar</h1>
         <ul class="menu">
             <li><a href="SecurityStaffDashboard.php" class="menutext">Dashboard</a></li>
-            <li><a href="VehicleApproval.php" class="menutext active">Vehicle Approval</a></li>
-            <li><a href="TrafficSummon.php" class="menutext">Trafic Summon</a></li>
+            <li><a href="VehicleApproval.php" class="menutext">Vehicle Approval</a></li>
+            <li><a href="TrafficSummon.php" class="menutext active">Trafic Summon</a></li>
         </ul>
     </nav>
 
     <div class="maincontent">
         <div class="content">
-            <center><h2>Vehicle Approval</h2></center>
-            <form action="VehicleApproval.php" method="get" class="searchbar">
-                <input type="text" name="search" placeholder="Search by ID or Plate.." value="<?php echo $search; ?>">
+            <div class="header-wrapper">
+                <h2>Traffic Summon List</h2>
+                <a href="CreateSummon.php" class="add-btn">
+                    <i class="fas fa-plus"></i> Create New Summon
+                </a>
+            </div>
+            
+            <form action="TrafficSummon.php" method="get" class="searchbar">
+                <input type="text" name="search" placeholder="Search by Summon ID or Student ID.." value="<?php echo $search; ?>">
                 <button type="submit">Search</button>
             </form>
 
@@ -86,13 +133,13 @@ $result = $conn->query($sql);
             <table>
                 <thead>
                     <tr>
-                        <th>Vehicle ID</th>
+                        <th>Summon ID</th>
                         <th>Student ID</th>
-                        <th>Type</th>
                         <th>Plate No.</th>
-                        <th>Model</th>
-                        <th>Colour</th>
-                        <th>Status</th>
+                        <th>Violation Type</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Fine (RM)</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -102,15 +149,15 @@ $result = $conn->query($sql);
                         while($row = $result->fetch_assoc()) {
                             ?>
                             <tr>
-                                <td><?php echo $row["VehicleID"]; ?></td>
+                                <td><?php echo $row["SummonID"]; ?></td>
                                 <td><?php echo $row["StudentID"]; ?></td>
-                                <td><?php echo $row["VehicleType"]; ?></td>
                                 <td><?php echo $row["PlateNumber"]; ?></td>
-                                <td><?php echo $row["VehicleModel"]; ?></td>
-                                <td><?php echo $row["VehicleColour"]; ?></td>
-                                <td><?php echo $row["VehicleStatus"]; ?></td>
+                                <td><?php echo $row["ViolationType"]; ?></td>
+                                <td><?php echo $row["SummonDate"]; ?></td>
+                                <td><?php echo $row["SummonTime"]; ?></td>
+                                <td><?php echo $row["FineAmount"]; ?></td>
                                 <td>
-                                    <a href="ReviewVehicle.php?id=<?php echo $row['VehicleID']; ?>" class="review">Review</a>
+                                    <a href="ViewSummon.php?id=<?php echo $row['SummonID']; ?>" class="view-btn">View</a>
                                 </td>
                             </tr>
                             <?php
