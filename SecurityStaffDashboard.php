@@ -24,6 +24,143 @@ if ($result->num_rows !== 1) {
     exit();
 }
 $staff = $result->fetch_assoc();
+<<<<<<< HEAD
+=======
+
+// SEARCH FUNCTIONALITY
+$search_results = [];
+
+if (isset($_GET['fsrch']) && $_GET['fsrch'] !== "") {
+    $search = "%" . htmlspecialchars($_GET['fsrch']) . "%";
+
+$sql = "
+    /* VEHICLE */
+    SELECT 'Vehicle' AS Type,
+           VehicleID AS ID,
+           CONCAT('Plate: ', PlateNumber, ', Model: ', VehicleModel) AS info
+    FROM Vehicle
+    WHERE VehicleID LIKE ?
+       OR PlateNumber LIKE ?
+       OR VehicleModel LIKE ?
+       OR VehicleType LIKE ?
+
+    UNION
+
+    /* BOOKING */
+    SELECT 'Booking' AS Type,
+           BookingID AS ID,
+           CONCAT('Date: ', BookingDate, ', Status: ', BookingStatus) AS info
+    FROM Booking
+    WHERE BookingID LIKE ?
+       OR BookingStatus LIKE ?
+       OR BookingDate LIKE ?
+
+    UNION
+
+    /* MERIT */
+    SELECT 'StudentMerit' AS Type,
+           MeritID AS ID,
+           CONCAT('Merit: ', MeritPoint, ', Demerit: ', DemeritPoint,
+                  ', Total: ', TotalMeritPoint) AS info
+    FROM StudentMerit
+    WHERE MeritID LIKE ?
+       OR MeritPoint LIKE ?
+       OR DemeritPoint LIKE ?
+
+    UNION
+
+    /* TRAFFIC SUMMON */
+    SELECT 'TrafficSummon' AS Type,
+           SummonID AS ID,
+           CONCAT('Violation: ', ViolationID, ', Date: ', SummonDate) AS info
+    FROM TrafficSummon
+    WHERE SummonID LIKE ?
+       OR ViolationID LIKE ?
+       OR SummonDescription LIKE ?
+
+    UNION
+
+    /* VIOLATION */
+    SELECT 'Violation' AS Type,
+           ViolationID AS ID,
+           CONCAT('Name: ', ViolationName, ', Type: ', ViolationType) AS info
+    FROM Violation
+    WHERE ViolationID LIKE ?
+       OR ViolationName LIKE ?
+       OR ViolationType LIKE ?
+
+    UNION
+
+    /* PARKING SPACE */
+    SELECT 'ParkingSpace' AS Type,
+           ParkingSpaceID AS ID,
+           CONCAT('Space: ', SpaceNumber, ', Type: ', SpaceType) AS info
+    FROM ParkingSpace
+    WHERE ParkingSpaceID LIKE ?
+       OR SpaceNumber LIKE ?
+       OR SpaceType LIKE ?
+
+    UNION
+
+    /* PARKING AREA */
+    SELECT 'ParkingArea' AS Type,
+           ParkingAreaID AS ID,
+           CONCAT('Area: ', AreaType, ', No: ', AreaNumber) AS info
+    FROM ParkingArea
+    WHERE ParkingAreaID LIKE ?
+       OR AreaType LIKE ?
+       OR AreaNumber LIKE ?
+";
+
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param(
+    "ssssssssssssssssssssss",
+
+    // Vehicle (4 fields)
+    $search, $search, $search, $search,
+
+    // Booking (3 fields)
+    $search, $search, $search,
+
+    // Merit (3 fields)
+    $search, $search, $search,
+
+    // Traffic Summon (3 fields)
+    $search, $search, $search,
+
+    // Violation (3 fields)
+    $search, $search, $search,
+
+    // ParkingSpace (3 fields)
+    $search, $search, $search,
+
+    // ParkingArea (3 fields)
+    $search, $search, $search
+);
+
+    $stmt->execute();
+    $search_results = $stmt->get_result();
+}
+
+// 20 seconds inactivity timeout
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 20) {
+    session_unset();
+    session_destroy();
+    header("Location: Login.php");
+    exit();
+}
+
+// Update activity time on every request
+$_SESSION['last_activity'] = time();
+
+// Existing security check (keep this if you already have it)
+if (!isset($_SESSION['user_id'])) {
+    header("Location: Login.php");
+    exit();
+}
+
+>>>>>>> module_2
 ?>
 
 <!DOCTYPE html>
