@@ -179,7 +179,7 @@ if ($result && $result->num_rows > 0) {
         </div>
         <div class="header-right">
             <a href="SecurityStaffProfile.php" class="profile"></i> My Profile</a>
-            <a href="logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i> Logout</a>
+            <a href="../logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i> Logout</a>
         </div>
     </header>
     

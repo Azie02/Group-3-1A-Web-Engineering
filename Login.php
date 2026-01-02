@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
                             header("Location: AdminDashboard.php");
                             break;
                         case 'SecurityStaff':
-                            header("Location: SecurityStaffDashboard.php");
+                            header("Location: SecurityStaff/SecurityStaffDashboard.php");
                             break;
                     }
                     exit();
