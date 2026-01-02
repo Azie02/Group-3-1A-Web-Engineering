@@ -20,91 +20,76 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $summonDesc = $_POST['summonDesc'];
     $fineAmount = $_POST['fineAmount'];
 
-    // 1. Verify Student Exists
     $checkStudent = $conn->query("SELECT * FROM Student WHERE StudentID = '$studentID'");
+    
     if ($checkStudent->num_rows == 0) {
         $error = "Student ID not found.";
     } else {
-        $conn->begin_transaction();
+        // Get points based on violation
+        $vResult = $conn->query("SELECT ViolationPoint FROM Violation WHERE ViolationID = $violationID");
+        $vRow = $vResult->fetch_assoc();
+        $pointsToAdd = intval($vRow['ViolationPoint']);
+        // Check current points for the student from StudentMerit
+        $mResult = $conn->query("SELECT * FROM StudentMerit WHERE StudentID = '$studentID'");
+        $currentDemerit = 0; 
+        
+        if ($mResult->num_rows > 0) {
+            $mRow = $mResult->fetch_assoc();
+            $currentDemerit = intval($mRow['DemeritPoint']);
+        }
 
-        try {
-            // 2. Insert Placeholder QRCode
-            $insertQR = "INSERT INTO QRCode (Image_URL, QR_Description) VALUES ('Placeholder', 'Pending')";
-            if (!$conn->query($insertQR)) {
-                throw new Exception("Error creating QR Code: " . $conn->error);
-            }
+        // Calculate new total
+        $newDemerit = $currentDemerit + $pointsToAdd;
+        $enforcementStatus = "None";
+        if ($newDemerit < 20) {
+            $enforcementStatus = "Warning given";
+        } elseif ($newDemerit < 50) {
+            $enforcementStatus = "Revoke of in campus vehicle permission for 1 semester";
+        } elseif ($newDemerit < 80) {
+            $enforcementStatus = "Revoke of in campus vehicle permission for 2 semesters";
+        } else {
+            $enforcementStatus = "Revoke of in campus vehicle permission for the entire study duration";
+        }
+
+        // 2. Insert Placeholder QRCode
+        $insertQR = "INSERT INTO QRCode (Image_URL, QR_Description) VALUES ('Placeholder', 'Pending')";
+        if ($conn->query($insertQR) === TRUE) {
             $newQRCodeID = $conn->insert_id;
-
-            $insertSummon = "INSERT INTO TrafficSummon (StudentID, ViolationID, QRCodeID, SummonDescription, SummonDate, SummonTime, FineAmount) 
-                             VALUES ('$studentID', $violationID, $newQRCodeID, '$summonDesc', '$summonDate', '$summonTime', '$fineAmount')";
+            // 3. Insert Summon WITH SNAPSHOT of Points and Status
+            $insertSummon = "INSERT INTO TrafficSummon (StudentID, ViolationID, QRCodeID, SummonDescription, SummonDate, SummonTime, FineAmount, DemeritPointSnapshot, EnforcementStatusSnapshot) 
+                             VALUES ('$studentID', $violationID, $newQRCodeID, '$summonDesc', '$summonDate', '$summonTime', '$fineAmount', '$newDemerit', '$enforcementStatus')";
             
-            if (!$conn->query($insertSummon)) {
-                throw new Exception("Error creating Summon: " . $conn->error);
-            }
-            $newSummonID = $conn->insert_id;
+            if ($conn->query($insertSummon) === TRUE) {
+                $newSummonID = $conn->insert_id;
 
-            // 4. Update QR Code details
-            $qrUrl = "Https.qr.summon." . $newSummonID . ".com";
-            $qrDesc = "QR code for Summon " . $newSummonID;
-            $updateQR = "UPDATE QRCode SET Image_URL = '$qrUrl', QR_Description = '$qrDesc' WHERE QRCodeID = $newQRCodeID";
-            $conn->query($updateQR);
+                // 4. Update QR Code details
+                $targetUrl = "http://localhost/fkparksystem/StudentViewSummon.php?summonID=" . $newSummonID;
+                $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($targetUrl);
+                $qrDesc = "QR code for Summon " . $newSummonID;
+                
+                $updateQR = "UPDATE QRCode SET Image_URL = '$qrUrl', QR_Description = '$qrDesc' WHERE QRCodeID = $newQRCodeID";
+                $conn->query($updateQR);
 
-            // 5. Update Student Demerit Points
-            
-            // Get points for this specific violation
-            $vResult = $conn->query("SELECT DemeritPoint FROM Violation WHERE ViolationID = $violationID");
-            $vRow = $vResult->fetch_assoc();
-            $pointsToAdd = intval($vRow['DemeritPoint']);
+                // 5. Update StudentMerit (Live Table)
+                if ($mResult->num_rows > 0) {
+                    $updateMerit = "UPDATE StudentMerit 
+                                    SET DemeritPoint = $newDemerit, 
+                                        EnforcementStatus = '$enforcementStatus', 
+                                        Date = '$summonDate' 
+                                    WHERE StudentID = '$studentID'";
+                    $conn->query($updateMerit);
+                } else {
+                    $insertMerit = "INSERT INTO StudentMerit (StudentID, DemeritPoint, EnforcementStatus, Date) 
+                                    VALUES ('$studentID', $newDemerit, '$enforcementStatus', '$summonDate')";
+                    $conn->query($insertMerit);
+                }
 
-            // Check current points for the student
-            $mResult = $conn->query("SELECT * FROM StudentMerit WHERE StudentID = '$studentID'");
-            
-            $currentDemerit = 0; // Default start from 0
-            
-            if ($mResult->num_rows > 0) {
-                $mRow = $mResult->fetch_assoc();
-                $currentDemerit = intval($mRow['DemeritPoint']);
-            }
-
-            // Calculate new total
-            $newDemerit = $currentDemerit + $pointsToAdd;
-
-            // Determine Enforcement Status based on accumulated points
-            $enforcementStatus = "None";
-            
-            if ($newDemerit == 0) {
-                 $enforcementStatus = "None";
-            } elseif ($newDemerit < 20) {
-                $enforcementStatus = "Warning given";
-            } elseif ($newDemerit < 50) {
-                $enforcementStatus = "Revoke of in campus vehicle permission for 1 semester";
-            } elseif ($newDemerit < 80) {
-                $enforcementStatus = "Revoke of in campus vehicle permission for 2 semesters";
+                $message = "Summon ID $newSummonID created successfully.";
             } else {
-                $enforcementStatus = "Revoke of in campus vehicle permission for the entire study duration";
+                $error = "Error creating Summon: " . $conn->error;
             }
-
-            // Update or Insert into StudentMerit
-            if ($mResult->num_rows > 0) {
-                $updateMerit = "UPDATE StudentMerit 
-                                SET DemeritPoint = $newDemerit, 
-                                    EnforcementStatus = '$enforcementStatus', 
-                                    Date = '$summonDate' 
-                                WHERE StudentID = '$studentID'";
-                $conn->query($updateMerit);
-            } else {
-                $insertMerit = "INSERT INTO StudentMerit (StudentID, DemeritPoint, EnforcementStatus, Date) 
-                                VALUES ('$studentID', $newDemerit, '$enforcementStatus', '$summonDate')";
-                $conn->query($insertMerit);
-            }
-
-            // Commit Transaction
-            $conn->commit();
-            $message = "Summon ID $newSummonID created successfully. Total Demerit Points: $newDemerit ($enforcementStatus)";
-
-        } catch (Exception $e) {
-            $conn->rollback();
-            $error = "Failed to create summon: " . $e->getMessage();
+        } else {
+            $error = "Error creating QR Code: " . $conn->error;
         }
     }
 }
@@ -206,7 +191,7 @@ $violations = $conn->query("SELECT * FROM Violation");
     <header class="header">
         <div class="header-left">
             <div class="logo">
-                <img src="UMPLogo.png" alt="UMPLogo">
+                <img src="../UMPLogo.png" alt="UMPLogo">
             </div>
         </div>
         <div class="header-right">
@@ -241,7 +226,7 @@ $violations = $conn->query("SELECT * FROM Violation");
                 <form action="CreateSummon.php" method="POST">
                     <div class="form-group">
                         <label for="studentID">Student ID</label>
-                        <input type="text" id="studentID" name="studentID" placeholder="e.g. CB23067" required>
+                        <input type="text" id="studentID" name="studentID" placeholder="CB23067" required>
                     </div>
 
                     <div class="form-group">
@@ -250,7 +235,7 @@ $violations = $conn->query("SELECT * FROM Violation");
                             <option value="">-- Select Violation --</option>
                             <?php while($v = $violations->fetch_assoc()): ?>
                                 <option value="<?php echo $v['ViolationID']; ?>">
-                                    <?php echo $v['ViolationType'] . " (" . $v['DemeritPoint'] . " Points)"; ?>
+                                    <?php echo $v['ViolationType'] . " (" . $v['ViolationPoint'] . " Points)"; ?>
                                 </option>
                             <?php endwhile; ?>
                         </select>
@@ -258,7 +243,7 @@ $violations = $conn->query("SELECT * FROM Violation");
 
                     <div class="form-group">
                         <label for="fineAmount">Fine Amount (RM)</label>
-                        <input type="number" id="fineAmount" name="fineAmount" step="0.01" placeholder="e.g. 50.00" required>
+                        <input type="number" id="fineAmount" name="fineAmount" step="0.01" placeholder="50.00" required>
                     </div>
 
                     <div class="form-group">

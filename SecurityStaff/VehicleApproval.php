@@ -9,6 +9,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     exit();
 }
 
+if (isset($_GET['delete_id'])) {
+    $deleteID = $_GET['delete_id'];
+    $deleteSql = "DELETE FROM Vehicle WHERE VehicleID = '$deleteID'";
+    if ($conn->query($deleteSql) === TRUE) {
+        echo "<script>alert('Vehicle deleted successfully.'); window.location.href='VehicleApproval.php';</script>";
+    } else {
+        echo "<script>alert('Error deleting vehicle: " . $conn->error . "');</script>";
+    }
+}
+
 $search = "";
 if (isset($_GET['search'])) {
     $search = $_GET['search'];
@@ -47,6 +57,22 @@ $result = $conn->query($sql);
         .review:hover {
             background-color: #6d4e2aff;
         }
+        
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.3s;
+            margin-left: 8px;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 
@@ -54,7 +80,7 @@ $result = $conn->query($sql);
     <header class="header">
         <div class="header-left">
             <div class="logo">
-                <img src="UMPLogo.png" alt="UMPLogo">
+                <img src="../UMPLogo.png" alt="UMPLogo">
             </div>
         </div>
         <div class="header-right">
@@ -111,6 +137,7 @@ $result = $conn->query($sql);
                                 <td><?php echo $row["VehicleStatus"]; ?></td>
                                 <td>
                                     <a href="ReviewVehicle.php?id=<?php echo $row['VehicleID']; ?>" class="review">Review</a>
+                                    <a href="VehicleApproval.php?delete_id=<?php echo $row['VehicleID']; ?>" class="delete-btn" onclick="return confirm('Are you sure you want to delete this vehicle application?');">Delete</a>
                                 </td>
                             </tr>
                             <?php

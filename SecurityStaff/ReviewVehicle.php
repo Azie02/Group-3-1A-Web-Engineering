@@ -233,7 +233,7 @@ if (!empty($vehicle['VehicleGrant'])) {
     <header class="header">
         <div class="header-left">
             <div class="logo">
-                <img src="UMPLogo.png" alt="UMP Logo">
+                <img src="../UMPLogo.png" alt="UMP Logo">
             </div>
         </div>
         <div class="header-right">

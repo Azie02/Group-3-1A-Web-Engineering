@@ -9,6 +9,35 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     exit();
 }
 
+if (isset($_GET['delete_id'])) {
+    $deleteID = $_GET['delete_id'];
+    //Delete with Qrcode of traffic summon
+    $qrSql = "SELECT QRCodeID FROM TrafficSummon WHERE SummonID = '$deleteID'";
+    $qrResult = $conn->query($qrSql);
+
+    if ($qrResult->num_rows > 0) {
+        $qrRow = $qrResult->fetch_assoc();
+        $qrID = $qrRow['QRCodeID'];
+
+        $deleteSql = "DELETE FROM TrafficSummon WHERE SummonID = '$deleteID'";
+        if ($conn->query($deleteSql) === TRUE) {
+
+            $conn->query("DELETE FROM QRCode WHERE QRCodeID = '$qrID'");
+            
+            echo "<script>alert('Summon deleted successfully.'); window.location.href='TrafficSummon.php';</script>";
+        } else {
+            echo "<script>alert('Error deleting summon: " . $conn->error . "');</script>";
+        }
+    } else {
+         $deleteSql = "DELETE FROM TrafficSummon WHERE SummonID = '$deleteID'";
+         if ($conn->query($deleteSql) === TRUE) {
+            echo "<script>alert('Summon deleted successfully.'); window.location.href='TrafficSummon.php';</script>";
+         } else {
+            echo "<script>alert('Error deleting summon: " . $conn->error . "');</script>";
+         }
+    }
+}
+
 $search = "";
 if (isset($_GET['search'])) {
     $search = $_GET['search'];
@@ -50,6 +79,22 @@ $result = $conn->query($sql);
 
         .view-btn:hover {
             background-color: #6d4e2aff;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.3s;
+            margin-left: 8px;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
         }
 
         .header-wrapper {
@@ -95,7 +140,7 @@ $result = $conn->query($sql);
     <header class="header">
         <div class="header-left">
             <div class="logo">
-                <img src="UMPLogo.png" alt="UMPLogo">
+                <img src="../UMPLogo.png" alt="UMPLogo">
             </div>
         </div>
         <div class="header-right">
@@ -158,6 +203,7 @@ $result = $conn->query($sql);
                                 <td><?php echo $row["FineAmount"]; ?></td>
                                 <td>
                                     <a href="ViewSummon.php?id=<?php echo $row['SummonID']; ?>" class="view-btn">View</a>
+                                    <a href="TrafficSummon.php?delete_id=<?php echo $row['SummonID']; ?>" class="delete-btn" onclick="return confirm('Are you sure you want to delete this summon?');">Delete</a>
                                 </td>
                             </tr>
                             <?php

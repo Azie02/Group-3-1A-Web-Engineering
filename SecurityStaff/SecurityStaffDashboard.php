@@ -114,7 +114,7 @@ for ($i = 6; $i >= 0; $i--) {
     <header class="header">
         <div class="header-left">
             <div class="logo">
-                <img src="UMPLogo.png" alt="UMPLogo">
+                <img src="../UMPLogo.png" alt="UMPLogo">
             </div>
         </div>
         <div class="header-right">

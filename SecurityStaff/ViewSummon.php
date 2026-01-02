@@ -23,29 +23,26 @@ $sql = "SELECT
             ts.SummonDescription, 
             ts.FineAmount, 
             ts.QRCodeID,
+            ts.DemeritPointSnapshot,
+            ts.EnforcementStatusSnapshot,
             s.StudentID, 
             s.StudentName, 
             s.StudentContact,
             veh.PlateNumber,
             v.ViolationType, 
-            v.DemeritPoint as ViolationPoints,
-            q.Image_URL,
-            sm.DemeritPoint as TotalDemerit
+            v.ViolationPoint as ViolationPoints,
+            q.Image_URL
         FROM TrafficSummon ts
         JOIN Student s ON ts.StudentID = s.StudentID
         LEFT JOIN Vehicle veh ON ts.StudentID = veh.StudentID
         JOIN Violation v ON ts.ViolationID = v.ViolationID
         LEFT JOIN QRCode q ON ts.QRCodeID = q.QRCodeID
-        LEFT JOIN StudentMerit sm ON ts.StudentID = sm.StudentID
-        WHERE ts.SummonID = ?
+        WHERE ts.SummonID = '$summonID'
         LIMIT 1";
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $summonID);
-$stmt->execute();
-$result = $stmt->get_result();
+$result = $conn->query($sql);
 
-if ($result->num_rows > 0) {
+if ($result && $result->num_rows > 0) {
     $row = $result->fetch_assoc();
 } else {
     echo "Summon not found.";
@@ -177,7 +174,7 @@ if ($result->num_rows > 0) {
     <header class="header">
         <div class="header-left">
             <div class="logo">
-                <img src="UMPLogo.png" alt="UMPLogo">
+                <img src="../UMPLogo.png" alt="UMPLogo">
             </div>
         </div>
         <div class="header-right">
@@ -223,6 +220,16 @@ if ($result->num_rows > 0) {
                             <label>Vehicle Plate No.</label>
                             <div class="value"><?php echo $row['PlateNumber'] ? $row['PlateNumber'] : 'N/A'; ?></div>
                         </div>
+                        <div class="info-group">
+                            <label>Total Demerit Points (At time of summon)</label>
+                            <div class="value"><?php echo $row['DemeritPointSnapshot'] !== null ? $row['DemeritPointSnapshot'] : 'N/A (Legacy Record)'; ?></div>
+                        </div>
+                        <div class="info-group">
+                            <label>Enforcement Status (At time of summon)</label>
+                            <div class="value" style="color: #e67e22; font-weight: 500;">
+                                <?php echo $row['EnforcementStatusSnapshot'] ? $row['EnforcementStatusSnapshot'] : 'N/A (Legacy Record)'; ?>
+                            </div>
+                        </div>
                     </div>
 
                     <div>
@@ -256,11 +263,6 @@ if ($result->num_rows > 0) {
                     <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode($row['Image_URL']); ?>" 
                          alt="Summon QR Code" 
                          class="qr-image">
-                    
-                    <div style="font-size: 0.8rem; color: #666;">
-                        SCAN TO PAY OR VIEW DETAILS<br>
-                        <?php echo $row['QRCodeID']; ?>
-                    </div>
                 </div>
             </div>
         </div>
