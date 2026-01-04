@@ -1,121 +1,66 @@
 <?php
- // Start the session
 session_start();
 
-// Single place to define login redirect header
-define('LOGIN_REDIRECT', 'Location: Login.php');
+/* ================= SESSION PROTECTION ================= */
+if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'student') {
+    header("Location: Login.php");
+    exit();
+}
 
-// Database connection parameters
-$conn = new mysqli("localhost", "root", "", "fkparksystem", 3306);
-
-// Check if database connection failed
+// DB connection
+$conn = new mysqli("localhost", "root", "", "fkparksystem");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Restrict access to only logged-in student
-if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'student') {
-    header(LOGIN_REDIRECT);
-    exit();
-}
+$studentID = $_SESSION['user_id'];
 
-// Get student data from database
-$student_id = $_SESSION['user_id'];
-$query = "SELECT * FROM student WHERE studentID = ?";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("s", $student_id);
+/* ================= FETCH LATEST MERIT ================= */
+$stmt = $conn->prepare("
+    SELECT MeritPoint, DemeritPoint, Date
+    FROM StudentMerit
+    WHERE StudentID = ?
+    ORDER BY Date DESC
+    LIMIT 1
+");
+$stmt->bind_param("s", $studentID);
 $stmt->execute();
 $result = $stmt->get_result();
+$data = $result->fetch_assoc();
 
-if ($result->num_rows !== 1) {
-    // Student not found in database
-    session_destroy();
-    header(LOGIN_REDIRECT);
-    exit();
+$merit     = $data['MeritPoint'] ?? 0;
+$demerit   = $data['DemeritPoint'] ?? 0;
+$total     = $merit - $demerit;
+$date      = $data['Date'] ?? "-";
+
+/* ================= ENFORCEMENT LOGIC (TABLE A) ================= */
+if ($total < 20) {
+    $status = "Warning Given";
+} elseif ($total < 50) {
+    $status = "Vehicle Permission Revoked (1 Semester)";
+} elseif ($total < 80) {
+    $status = "Vehicle Permission Revoked (2 Semesters)";
+} else {
+    $status = "Vehicle Permission Revoked (Entire Study)";
 }
-$student = $result->fetch_assoc();
-
-// SEARCH FUNCTIONALITY
-$search_results = [];
-
-if (isset($_GET['fsrch']) && $_GET['fsrch'] !== "") {
-    $search = "%" . htmlspecialchars($_GET['fsrch']) . "%";
-
-    $sql = "
-        /* VEHICLE SEARCH */
-        SELECT 'Vehicle' AS Type,
-               VehicleID AS ID,
-               CONCAT('Plate: ', PlateNumber, ', Model: ', VehicleModel) AS info
-        FROM Vehicle
-        WHERE StudentID = ? AND VehicleID LIKE ?
-
-        UNION
-
-        /* BOOKING SEARCH */
-        SELECT 'Booking' AS Type,
-               BookingID AS ID,
-               CONCAT('Date: ', BookingDate, ', Status: ', BookingStatus) AS info
-        FROM Booking
-        WHERE StudentID = ? AND BookingID LIKE ?
-
-        UNION
-
-        /* MERIT SEARCH */
-        SELECT 'StudentMerit' AS Type,
-               MeritID AS ID,
-               CONCAT('Merit: ', MeritPoint, ', Demerit: ', DemeritPoint,
-                      ', Total: ', TotalMeritPoint) AS info
-        FROM StudentMerit
-        WHERE StudentID = ? AND MeritID LIKE ?
-    ";
-
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssss",
-        $student_id, $search,     // Vehicle
-        $student_id, $search,     // Booking
-        $student_id, $search      // Merit
-    );
-    $stmt->execute();
-    $search_results = $stmt->get_result();
-}
-
-// 20 seconds inactivity timeout
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 60) {
-    session_unset();
-    session_destroy();
-    header(LOGIN_REDIRECT);
-    exit();
-}
-
-// Update activity time on every request
-$_SESSION['last_activity'] = time();
-
-// Existing security check (keep this if you already have it)
-if (!isset($_SESSION['user_id'])) {
-    header(LOGIN_REDIRECT);
-    exit();
-}
-
 ?>
 
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Student Dashboard</title>
-        <meta name="desription" content="StudentDashboard">
-        <meta name="author" content="Group1A3">
-        <style>
-            body {
-               background-color: #f5f5f5;
-               font-family: 'Roboto', sans-serif;
-               margin: 0;
-               padding: 0;
-               display: flex;
-               flex-direction: column;
-               min-height: 100vh;
-            }
-
-            .header{
+<head>
+    <title>Merit Status</title>
+    <meta name="description" content="Merit Status">
+    <meta name="author" content="Group1A3">
+    <style>
+        body { font-family: Roboto, sans-serif; background:#f5f5f5; margin:0; }
+        .maincontent { margin-left:250px; margin-top:120px; padding:40px; }
+        .box {
+            background:white;
+            padding:30px;
+            border-radius:10px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+        }
+                    .header{
                 background-color: #008080; 
                 display: flex;
                 justify-content: space-between;
@@ -241,15 +186,25 @@ if (!isset($_SESSION['user_id'])) {
                gap: 8px;
                text-decoration: none;
             }
-
-            .maincontent{
-               margin-left: 250px;
-               margin-top: 120px;
-               padding: 40px;
-               box-sizing: border-box;
-            }
-
-            .content {
+        table {
+            width:100%;
+            border-collapse:collapse;
+            margin-top:20px;
+        }
+        th, td {
+            padding:14px;
+            border-bottom:1px solid #ddd;
+            text-align:center;
+        }
+        th { background:#008080; color:white; }
+        .status {
+            margin-top:20px;
+            padding:15px;
+            border-radius:6px;
+            background:#fff3cd;
+            font-weight:600;
+        }
+                    .content {
               background-color: white;
               padding: 25px;
               border-radius: 8px;
@@ -344,9 +299,10 @@ if (!isset($_SESSION['user_id'])) {
                color: white;
                padding: 15px 0;
             }
-        </style>
-    </head>
-    <script>
+    </style>
+    
+</head>
+<script>
     let timeout = 60;          // must match PHP
     let warningTime = 10;      // show warning 10s before timeout
     let countdown;
@@ -380,85 +336,76 @@ if (!isset($_SESSION['user_id'])) {
 // Start timer on page load
 startTimer();
 </script>
-    <body>
-        <header class="header">
-            <div class="header_left">
-                <div class="logo">
-                <img src="UMPLogo.png" alt="UMPLogo">
-                </div>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <img src ="UMPLogo.png" alt="UMPLogo">
             </div>
-            <div class="header-right">
-                <span style="color:white; font-weight:500;">
-                    Welcome, <?php echo htmlspecialchars($student['StudentName']); ?>
-                </span>
-                <a href="StudentProfile.php" class="profile">
-                    <i class="fas fa-user-circle"></i> My Profile
+            
+            <button class="togglebutton" id="sidebarToggle">
+                <i class="fas fa-bars"></i>Menu
+            </button>
+        </div>
+        <div class="header-right">
+            <a href="StudentProfile.php" class="profile">
+                <i class="fas fa-user-circle"></i> My Profile
+            </a>
+            <a href="logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </header>
+    
+    <nav class="sidebar" id="sidebar">
+        <h1 class="sidebartitle"><strong>Student</strong></h1>
+        <ul class="menu">
+            <li>
+                <a href="StudentDashboard.php" class="menutext">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
-                <a href="logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
-                   <i class="fas fa-sign-out-alt"></i> Logout
+            </li>
+            <li>
+                <a href="VehicleRegistration.php" class="menutext">
+                    <i class="fas fa-users"></i> Vehicle Registration
                 </a>
-            </div>
-        </header>
-        
-        <nav class="sidebar">
-            <h1 class="sidebartitle">Student Bar</h1>
-            <ul class="menu">
-                <li>
-                    <a href="StudentDashboard.php" class="menutext active">Dashboard</a>
-                </li>
-                <li>
-                    <a href="VehicleRegistration.php" class="menutext">Vehicle Registration</a>
-                </li>
-                <li>
-                    <a href="Booking.php" class="menutext">Book Parking</a>
-                </li>
-                <li>
-                    <a href="MeritStatus.php" class="menutext">Merit status</a>
-                </li>
-            </ul>
-        </nav>
+            </li>
+            <li>
+                <a href="Booking.php" class="menutext">
+                    <i class="fas fa-parking"></i> Book Parking
+                </a>
+            </li>
+            <li>
+                <a href="MeritStatus.php" class="menutext active">
+                    <i class="fas fa-chart-line"></i> Merit Status
+                </a>
+        </ul>
+    </nav>
 
-        <div class="maincontent">
-            <div class="content">
-                <center><h2>Welcome to FK Parking Management System</h2></center>
-                <form class="searchbar" method="GET" action="">
-                    <input name="fsrch" id="fsrch" placeholder="Type Search">
-                    <button type="submit">Search</button>
-                </form>
-                
-                <?php if (!empty($_GET['fsrch'])): ?>
-                <div class="search-results">
-                    <h3>Search Results:</h3>
+<div class="maincontent">
 
-                    <?php if ($search_results->num_rows > 0): ?>
-                        <ul>
-                            <?php while ($row = $search_results->fetch_assoc()): ?>
-                                <li>
-                                    <strong><?php echo $row['Type']; ?>:</strong>
-                                    ID: <?php echo $row['ID']; ?> —
-                                    Info: <?php echo $row['info']; ?>
-                                </li>
-                            <?php endwhile; ?>
-                        </ul>
-                    <?php else: ?>
-                        <p>No results found.</p>
-                    <?php endif; ?>
+    <div class="box">
+        <h2>My Merit Status</h2>
+
+        <table>
+            <tr>
+                <th>Merit Point</th>
+                <th>Demerit Point</th>
+                <th>Total Point</th>
+                <th>Last Updated</th>
+            </tr>
+            <tr>
+                <td><?= $merit ?></td>
+                <td><?= $demerit ?></td>
+                <td><?= $total ?></td>
+                <td><?= $date ?></td>
+            </tr>
+        </table>
+
+                <div class="status">
+                    Enforcement Status: <strong><?= $status ?></strong>
                 </div>
-                <?php endif; ?>
             </div>
-
-            <div class="seccontent">
-                <div class="cards">
-                   <div class="card">Total Available Park</div>
-                   <div class="card">Total Booking</div>
-                   <div class="card">Total Approved</div>
-                </div>
-
-               <div class="charts">
-                   <div class="chart">Parking Usage Daily Chart</div>
-                   <div class="chart">Booking Status Chart</div>
-               </div>
-           </div>
         </div>
         <footer>
             <center><p> © 2025 FKPark System</p></center>

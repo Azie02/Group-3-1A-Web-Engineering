@@ -3,7 +3,7 @@
 session_start();
 
 // Database connection parameters
-$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3306);
+$conn = new mysqli("localhost", "root", "", "fkparksystem", 3306);
 
 // Check if database connection failed
 if ($conn->connect_error) {
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FKParkSystem Login</title>
+    <title>FK Park System Login</title>
     <style>
         body {
             font-family: Arial, sans-serif;
