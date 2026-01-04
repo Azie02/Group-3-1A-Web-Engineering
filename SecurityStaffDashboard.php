@@ -158,8 +158,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-?>
-/* Dashboard CSS */
+
 body {
     background-color: #f5f5f5;
     font-family: 'Roboto', sans-serif;
@@ -443,6 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
 });
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -518,3 +518,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </body>
 
 </html>
+?>
