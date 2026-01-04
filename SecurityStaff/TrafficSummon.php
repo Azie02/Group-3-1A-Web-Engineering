@@ -5,7 +5,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') {
-    header("Location: Login.php");
+    header("Location: ../Login.php");
     exit();
 }
 
@@ -65,75 +65,6 @@ $result = $conn->query($sql);
     <meta name="author" content="Group1A3">
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .view-btn {
-            background-color: #eb9d43ff;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: background 0.3s;
-        }
-
-        .view-btn:hover {
-            background-color: #6d4e2aff;
-        }
-
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: background 0.3s;
-            margin-left: 8px;
-        }
-
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-
-        .header-wrapper {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 0 10px;
-        }
-
-        .header-wrapper h2 {
-            margin: 0;
-        }
-
-        .add-btn {
-            position: absolute;
-            right: 0;
-            background-color: #28a745;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: background-color 0.3s;
-            font-size: 0.9rem;
-        }
-
-        .add-btn:hover {
-            background-color: #218838;
-        }
-
-        .searchbar {
-            margin-bottom: 20px;
-        }
-    </style>
 </head>
 
 <body>
@@ -144,8 +75,12 @@ $result = $conn->query($sql);
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile"></i>My Profile</a>
-            <a href="../logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i>Logout</a>
+            <a href="SecurityStaffProfile.php" class="profile">
+                <i class="fas fa-user-circle"></i> My Profile
+            </a>
+            <a href="../logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </div>
     </header>
     

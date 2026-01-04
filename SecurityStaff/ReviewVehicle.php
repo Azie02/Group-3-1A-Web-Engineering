@@ -5,7 +5,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') {
-    header("Location: Login.php");
+    header("Location: ../Login.php");
     exit();
 }
 
@@ -55,179 +55,6 @@ if (!empty($vehicle['VehicleGrant'])) {
     <title>Review Vehicle</title>
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .details-container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-            max-width: 800px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .header-section {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-section h2 {
-            margin: 0;
-            color: #333;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .info-group {
-            margin-bottom: 20px;
-        }
-
-        .info-group label {
-            display: block;
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-
-        .info-group .value {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #666;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .back-link:hover {
-            color: #333;
-        }
-
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            display: inline-block;
-        }
-        .Pending { background-color: #ffeeba; color: #856404; }
-        .Approved { background-color: #d4edda; color: #155724; }
-        .Rejected { background-color: #f8d7da; color: #721c24; }
-
-        .grant-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
-            text-align: center;
-        }
-
-        .grant-photo {
-            max-width: 100%;
-            max-height: 400px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 5px;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
-        .no-photo {
-            padding: 30px;
-            color: #999;
-            font-style: italic;
-            background: #f9f9f9;
-            border-radius: 4px;
-        }
-
-        .action-container {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-
-        .action-container label {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .action-container textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 15px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            transition: opacity 0.3s;
-        }
-
-        .btn:hover {
-            opacity: 0.9; 
-        }
-
-        .btn-approve {
-            background-color: #28a745;
-        }
-
-        .btn-reject {
-            background-color: #dc3545;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
 </head>
 <body>
     <header class="header">
@@ -237,8 +64,12 @@ if (!empty($vehicle['VehicleGrant'])) {
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile"></i>My Profile</a>
-            <a href="../logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');"></i>Logout</a>
+            <a href="SecurityStaffProfile.php" class="profile">
+                <i class="fas fa-user-circle"></i> My Profile
+            </a>
+            <a href="../logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </div>
     </header>
 
@@ -316,9 +147,6 @@ if (!empty($vehicle['VehicleGrant'])) {
 
                 <div class="action-container">
                     <form action="ReviewVehicle.php?id=<?php echo $vehicleID; ?>" method="POST">
-                        <label for="remark"><i class="fas fa-pen"></i> Review Notes / Reason</label>
-                        <textarea name="remark" id="remark" placeholder="Enter reason for approval or rejection..."></textarea>
-                        
                         <div class="btn-group">
                             <button type="submit" name="action" value="approve" class="btn btn-approve" onclick="return confirm('Confirm Approval?');">
                                 <i class="fas fa-check"></i> Approve

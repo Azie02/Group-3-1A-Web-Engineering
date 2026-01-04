@@ -5,7 +5,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') {
-    header("Location: Login.php");
+    header("Location: ../Login.php");
     exit();
 }
 
@@ -13,22 +13,29 @@ $message = "";
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $studentID = $_POST['studentID'];
+    // 1. Get Plate Number 
+    $plateNumber = $_POST['plateNumber'];
     $violationID = $_POST['violationID'];
     $summonDate = $_POST['summonDate'];
     $summonTime = $_POST['summonTime'];
     $summonDesc = $_POST['summonDesc'];
     $fineAmount = $_POST['fineAmount'];
 
-    $checkStudent = $conn->query("SELECT * FROM Student WHERE StudentID = '$studentID'");
+    // 2. Lookup Student ID associated with the Plate Number
+    $checkVehicle = $conn->query("SELECT StudentID FROM Vehicle WHERE PlateNumber = '$plateNumber'");
     
-    if ($checkStudent->num_rows == 0) {
-        $error = "Student ID not found.";
+    if ($checkVehicle->num_rows == 0) {
+        $error = "Vehicle Plate Number '$plateNumber' not found in the system.";
     } else {
+        // Retrieve the StudentID found
+        $vehicleRow = $checkVehicle->fetch_assoc();
+        $studentID = $vehicleRow['StudentID'];
+
         // Get points based on violation
         $vResult = $conn->query("SELECT ViolationPoint FROM Violation WHERE ViolationID = $violationID");
         $vRow = $vResult->fetch_assoc();
         $pointsToAdd = intval($vRow['ViolationPoint']);
+        
         // Check current points for the student from StudentMerit
         $mResult = $conn->query("SELECT * FROM StudentMerit WHERE StudentID = '$studentID'");
         $currentDemerit = 0; 
@@ -51,18 +58,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $enforcementStatus = "Revoke of in campus vehicle permission for the entire study duration";
         }
 
-        // 2. Insert Placeholder QRCode
+        // 3. Insert Placeholder QRCode
         $insertQR = "INSERT INTO QRCode (Image_URL, QR_Description) VALUES ('Placeholder', 'Pending')";
         if ($conn->query($insertQR) === TRUE) {
             $newQRCodeID = $conn->insert_id;
-            // 3. Insert Summon WITH SNAPSHOT of Points and Status
+            
+            // 4. Insert Summon (Still links to StudentID in database)
             $insertSummon = "INSERT INTO TrafficSummon (StudentID, ViolationID, QRCodeID, SummonDescription, SummonDate, SummonTime, FineAmount, DemeritPointSnapshot, EnforcementStatusSnapshot) 
                              VALUES ('$studentID', $violationID, $newQRCodeID, '$summonDesc', '$summonDate', '$summonTime', '$fineAmount', '$newDemerit', '$enforcementStatus')";
             
             if ($conn->query($insertSummon) === TRUE) {
                 $newSummonID = $conn->insert_id;
 
-                // 4. Update QR Code details
+                // 5. Update QR Code details
                 $targetUrl = "http://localhost/fkparksystem/StudentViewSummon.php?summonID=" . $newSummonID;
                 $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($targetUrl);
                 $qrDesc = "QR code for Summon " . $newSummonID;
@@ -70,7 +78,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $updateQR = "UPDATE QRCode SET Image_URL = '$qrUrl', QR_Description = '$qrDesc' WHERE QRCodeID = $newQRCodeID";
                 $conn->query($updateQR);
 
-                // 5. Update StudentMerit (Live Table)
+                // 6. Update StudentMerit (Live Table)
                 if ($mResult->num_rows > 0) {
                     $updateMerit = "UPDATE StudentMerit 
                                     SET DemeritPoint = $newDemerit, 
@@ -84,7 +92,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $conn->query($insertMerit);
                 }
 
-                $message = "Summon ID $newSummonID created successfully.";
+                $message = "Summon ID $newSummonID created successfully for vehicle $plateNumber ($studentID).";
             } else {
                 $error = "Error creating Summon: " . $conn->error;
             }
@@ -104,87 +112,6 @@ $violations = $conn->query("SELECT * FROM Violation");
     <title>Create Traffic Summon</title>
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .form-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .form-group input, 
-        .form-group select, 
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-            box-sizing: border-box; 
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            height: 100px;
-        }
-
-        .btn-submit {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 1rem;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-
-        .btn-submit:hover {
-            background-color: #218838;
-        }
-
-        .back-link {
-            display: block;
-            margin-bottom: 20px;
-            color: #666;
-            text-decoration: none;
-        }
-
-        .back-link:hover {
-            color: #333;
-        }
-
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
 </head>
 
 <body>
@@ -195,8 +122,11 @@ $violations = $conn->query("SELECT * FROM Violation");
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile"></i> My Profile</a>
-            <a href="logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i> Logout
+            <a href="SecurityStaffProfile.php" class="profile">
+                <i class="fas fa-user-circle"></i> My Profile
+            </a>
+            <a href="../logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
+                <i class="fas fa-sign-out-alt"></i> Logout
             </a>
         </div>
     </header>
@@ -224,9 +154,10 @@ $violations = $conn->query("SELECT * FROM Violation");
                 <?php endif; ?>
 
                 <form action="CreateSummon.php" method="POST">
+                    <!-- Changed from Student ID to Vehicle Plate Number -->
                     <div class="form-group">
-                        <label for="studentID">Student ID</label>
-                        <input type="text" id="studentID" name="studentID" placeholder="CB23067" required>
+                        <label for="plateNumber">Vehicle Plate Number</label>
+                        <input type="text" id="plateNumber" name="plateNumber" placeholder="ABC1234" required>
                     </div>
 
                     <div class="form-group">

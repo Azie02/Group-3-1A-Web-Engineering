@@ -5,7 +5,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') {
-    header("Location: Login.php");
+    header("Location: ../Login.php");
     exit();
 }
 
@@ -46,68 +46,6 @@ for ($i = 6; $i >= 0; $i--) {
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .stat-info {
-            text-align: center;
-        }
-
-        .stat-info h3 {
-            margin: 0;
-            font-size: 2rem;
-            color: #333;
-        }
-
-        .stat-info p {
-            margin: 5px 0 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .charts-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .chart-box {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .chart-box h3 {
-            margin-top: 0;
-            color: #444;
-            font-size: 1.1rem;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        
-        @media (max-width: 900px) {
-            .charts-container {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -118,8 +56,12 @@ for ($i = 6; $i >= 0; $i--) {
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile"></i>My Profile</a>
-            <a href="../logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i>Logout</a>
+            <a href="SecurityStaffProfile.php" class="profile">
+                <i class="fas fa-user-circle"></i> My Profile
+            </a>
+            <a href="../logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </div>
     </header>
     

@@ -5,7 +5,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') {
-    header("Location: Login.php");
+    header("Location: ../Login.php");
     exit();
 }
 
@@ -57,117 +57,6 @@ if ($result && $result->num_rows > 0) {
     <title>View Summon Details</title>
     <link rel="stylesheet" href="SecurityDashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .details-container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-            max-width: 800px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .header-section {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-section h2 {
-            margin: 0;
-            color: #333;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-        }
-
-        .info-group {
-            margin-bottom: 20px;
-        }
-
-        .info-group label {
-            display: block;
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-
-        .info-group .value {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .qr-section {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 2px solid #eee;
-        }
-
-        .qr-image {
-            width: 150px;
-            height: 150px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            padding: 5px;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #666;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .back-link:hover {
-            color: #333;
-        }
-
-        .btn-print {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-print:hover {
-            background-color: #0056b3;
-        }
-
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            .details-container, .details-container * {
-                visibility: visible;
-            }
-            .details-container {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                box-shadow: none;
-            }
-            .back-link, .btn-print, .sidebar, .header {
-                display: none !important;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -178,8 +67,12 @@ if ($result && $result->num_rows > 0) {
             </div>
         </div>
         <div class="header-right">
-            <a href="SecurityStaffProfile.php" class="profile"></i> My Profile</a>
-            <a href="../logout.php" class="logoutbutton" id="logoutBtn" onclick="return confirm('Are you sure you want to log out?');"></i> Logout</a>
+            <a href="SecurityStaffProfile.php" class="profile">
+                <i class="fas fa-user-circle"></i> My Profile
+            </a>
+            <a href="../logout.php" class="logoutbutton" onclick="return confirm('Are you sure you want to log out?');">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </div>
     </header>
     
@@ -221,11 +114,11 @@ if ($result && $result->num_rows > 0) {
                             <div class="value"><?php echo $row['PlateNumber'] ? $row['PlateNumber'] : 'N/A'; ?></div>
                         </div>
                         <div class="info-group">
-                            <label>Total Demerit Points (At time of summon)</label>
+                            <label>Total Demerit Points</label>
                             <div class="value"><?php echo $row['DemeritPointSnapshot'] !== null ? $row['DemeritPointSnapshot'] : 'N/A (Legacy Record)'; ?></div>
                         </div>
                         <div class="info-group">
-                            <label>Enforcement Status (At time of summon)</label>
+                            <label>Enforcement Status</label>
                             <div class="value" style="color: #e67e22; font-weight: 500;">
                                 <?php echo $row['EnforcementStatusSnapshot'] ? $row['EnforcementStatusSnapshot'] : 'N/A (Legacy Record)'; ?>
                             </div>
@@ -271,7 +164,5 @@ if ($result && $result->num_rows > 0) {
     <footer>
         <center><p> © 2025 FKPark System</p></center>
     </footer>
-
-    <script src="SecurityDashboard.js"></script>
 </body>
 </html>
