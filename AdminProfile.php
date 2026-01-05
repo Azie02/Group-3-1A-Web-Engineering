@@ -1,5 +1,4 @@
 <?php
-// AdminProfile.php
 session_start();
 
 // Database connection parameters
@@ -151,8 +150,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 20 seconds inactivity timeout
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 20) {
+// 60 seconds inactivity timeout
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 60) {
     session_unset();
     session_destroy();
     header("Location: Login.php");
@@ -172,570 +171,80 @@ $_SESSION['last_activity'] = time();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f5f5f5;
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .header{
-            background-color: #d373d3ff; 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-            position: fixed;
-            width: 100%;
-            height: 120px;
-            box-sizing: border-box;
-            z-index: 1000;
-            top: 0;
-            left: 0;
-        }
-        .header-left{
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 0 35px;
-        }
-        .header-right{
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding-right: 20px;
-        }
-        .togglebutton {
-            background-color: #daa5dad7;
-            color: white;
-            border: 1px solid #d890d89c;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .togglebutton:hover {
-            background-color: #864281ff;
-        }
-        .logo{
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            padding: 0 60px;
-        }
-        .logo img{
-            height: 90px;
-            width: auto;
-        }
-        .sidebar{
-            background-color: #d890d8ff;
-            width: 250px;
-            color: black;
-            position: fixed;
-            top: 120px;
-            left: 0;
-            bottom: 0;
-            padding: 20px 0;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-            z-index: 999;
-        }
-        .sidebar.collapsed {
-            transform: translateX(-250px);
-            opacity: 0;
-            width: 0;
-            padding: 0;
-        }
-        .sidebartitle{
-            color: black;
-            font-size: 1rem;
-            margin-bottom: 20px;
-            padding: 0 20px;
-        }
-        /* Main Content Adjustment */
-        .main-container.sidebar-collapsed {
-            margin-left: 0;
-            transition: margin-left 0.3s ease;
-        }
-        .menu{
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            padding: 0;
-            margin: 0;
-            list-style: none;
-        }
-        .menutext{
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 14px 18px;
-            color: black;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .menu a {
-            text-decoration: none;
-            color: inherit;
-        }  
-        .menutext:hover {
-            background-color: #a03198d5;
-        }   
-        .menutext.active {
-            background-color: #a03198d5;
-            font-weight: 500;
-        }
-        .profile{
-            background-color: #7405f1ff;
-            color: white;
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-        .profile:hover {
-            background-color: #2e0c55ff;
-        }
-        .logoutbutton {
-            background-color: rgba(255, 0, 0, 0.81);
-            color: white;
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-        .main-container {
-            margin-left: 250px;
-            margin-top: 120px;
-            padding: 40px;
-            box-sizing: border-box;
-            flex: 1;
-            transition: margin-left 0.3s ease;
-            width: calc(100% - 250px);
-        }
-        .main-container.sidebar-collapsed {
-            margin-left: 0;
-            width: 100%;
-        }
-        .content {
-            background-color: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-        }
-        footer {
-            background-color: #b8a6ccff;
-            color: white;
-            padding: 15px 0;
-            text-align: center;
-            width: 100%;
-            margin-top: auto;
-            position: relative;
-            bottom: 0;
-            left: 0;
-            transition: margin-left 0.3s ease;
-        }
-        footer.sidebar-collapsed {
-            margin-left: 0;
-        }    
-        
-        /* Profile Container */
-        .profile-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-            display: flex;
-            gap: 40px;
-        }
-
-        /* Left Column - Profile Picture */
-        .profile-left {
-            flex: 0 0 250px;
-            text-align: center;
-        }
-
-        .profile-picture {
-            width: 200px;
-            height: 200px;
-            background: linear-gradient(135deg, #7405f1ff, #3f1174ff);
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 64px;
-            font-weight: bold;
-            border: 5px solid #f0f0f0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .profile-picture img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .edit-picture-form {
-            margin-top: 10px;
-        }
-
-        .edit-picture-btn {
-            background: #7405f1ff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.3s;
-            width: 100%;
-            justify-content: center;
-        }
-
-        .edit-picture-btn:hover {
-            background: #5a04c2;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        /* Right Column - Profile Info */
-        .profile-right {
-            flex: 1;
-        }
-
-        .profile-title {
-            color: #3f1174ff;
-            font-size: 24px;
-            margin-bottom: 10px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .profile-info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .info-item {
-            padding: 15px;
-            background: #f9f7ff;
-            border-radius: 6px;
-            border-left: 3px solid #7405f1ff;
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-
-        .info-value {
-            font-size: 16px;
-            color: #333;
-            font-weight: 500;
-        }
-
-        /* Form Sections */
-        .form-section {
-            background: #f9f7ff;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #7405f1ff;
-        }
-
-        .form-section-title {
-            color: #3f1174ff;
-            font-size: 20px;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Password Form Specific Styles */
-        .password-form {
-            background: #f9f7ff;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #7405f1ff;
-        }
-
-        .password-title {
-            color: #3f1174ff;
-            font-size: 20px;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .password-form-group {
-            margin-bottom: 20px;
-        }
-
-        .password-label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .password-input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border 0.3s;
-            max-width: 400px;
-        }
-
-        .password-input:focus {
-            outline: none;
-            border-color: #7405f1ff;
-            box-shadow: 0 0 0 2px rgba(116, 5, 241, 0.1);
-        }
-
-        .password-requirements {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px dashed #ccc;
-        }
-
-        .requirements-title {
-            color: #666;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .requirements-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .requirements-list li {
-            color: #666;
-            font-size: 13px;
-            margin-bottom: 8px;
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .requirements-list li:before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: #7405f1ff;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #7405f1ff;
-            box-shadow: 0 0 0 2px rgba(116, 5, 241, 0.1);
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 15px;
-            margin-top: 25px;
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: #7405f1ff;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5a04c2;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        /* Alert Messages */
-        .alert {
-            padding: 15px 20px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-admin {
-            background: #cce5ff;
-            color: #004085;
-        }
-
-        .status-security {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        /* Divider */
-        .divider {
-            height: 1px;
-            background: #e0e0e0;
-            margin: 20px 0;
-            border: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .profile-container {
-                flex-direction: column;
-            }
-            
-            .profile-left {
-                flex: none;
-            }
-            
-            .profile-info-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .password-input {
-                max-width: 100%;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .main-container {
-                margin-left: 0;
-                width: 100%;
-                padding: 20px;
-            }
-            .profile-container {
-                padding: 15px;
-            }
-            .form-section, .password-form {
-                padding: 15px;
-            }
-        }
+body { background-color: #f5f5f5; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+.header { background-color: #d373d3ff; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; position: fixed; width: 100%; height: 120px; box-sizing: border-box; z-index: 1000; top: 0; left: 0; }
+.header-left { display: flex; align-items: center; gap: 20px; padding: 0 35px; }
+.header-right { display: flex; align-items: center; gap: 20px; padding-right: 20px; }
+.togglebutton { background-color: #daa5dad7; color: white; border: 1px solid #d890d89c; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.togglebutton:hover { background-color: #864281ff; }
+.logo { display: flex; gap: 20px; align-items: center; padding: 0 60px; }
+.logo img { height: 90px; width: auto; }
+.sidebar { background-color: #c277c2ff; width: 250px; color: black; position: fixed; top: 120px; left: 0; bottom: 0; padding: 20px 0; box-sizing: border-box; transition: all 0.3s ease; z-index: 999; }
+.sidebar.collapsed { transform: translateX(-250px); opacity: 0; width: 0; padding: 0; }
+.sidebartitle { color: white; font-size: 1rem; margin-bottom: 20px; padding: 0 20px; }
+.main-container.sidebar-collapsed { margin-left: 0; transition: margin-left 0.3s ease; }
+.menu { display: flex; flex-direction: column; gap: 18px; padding: 0; margin: 0; list-style: none; }
+.menutext { background-color: rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 14px 18px; color: white; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 20px; }
+.menu a { text-decoration: none; color: white; }
+.menutext:hover { background-color: #a03198d5; color: white;}
+.menutext.active { background-color: #a03198d5; font-weight: 500; color: white; }
+.profile { background-color: #7405f1ff; color: white; border: 1px solid rgba(0, 0, 0, 0.3); padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; transition: all 0.2s; text-decoration: none; }
+.profile:hover { background-color: #2e0c55ff; }
+.logoutbutton { background-color: rgba(255, 0, 0, 0.81); color: white; border: 1px solid rgba(0, 0, 0, 0.3); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.main-container { margin-left: 250px; margin-top: 120px; padding: 40px; box-sizing: border-box; flex: 1; transition: margin-left 0.3s ease; width: calc(100% - 250px); }
+.main-container.sidebar-collapsed { margin-left: 0; width: 100%; }
+.content { background-color: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+footer { background-color: #b8a6ccff; color: white; padding: 15px 0; text-align: center; width: 100%; margin-top: auto; position: relative; bottom: 0; left: 0; transition: margin-left 0.3s ease; }
+footer.sidebar-collapsed { margin-left: 0; }
+.profile-container { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); display: flex; gap: 40px; }
+.profile-left { flex: 0 0 250px; text-align: center; }
+.profile-picture { width: 200px; height: 200px; background: linear-gradient(135deg, #7405f1ff, #3f1174ff); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 64px; font-weight: bold; border: 5px solid #f0f0f0; position: relative; overflow: hidden; }
+.profile-picture img { width: 100%; height: 100%; object-fit: cover; }
+.edit-picture-form { margin-top: 10px; }
+.edit-picture-btn { background: #7405f1ff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; transition: background 0.3s; width: 100%; justify-content: center; }
+.edit-picture-btn:hover { background: #5a04c2; }
+.file-input { display: none; }
+.profile-right { flex: 1; }
+.profile-title { color: #3f1174ff; font-size: 24px; margin-bottom: 10px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0; display: flex; align-items: center; gap: 10px; }
+.profile-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+.info-item { padding: 15px; background: #f9f7ff; border-radius: 6px; border-left: 3px solid #7405f1ff; }
+.info-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+.info-value { font-size: 16px; color: #333; font-weight: 500; }
+.form-section { background: #f9f7ff; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #7405f1ff; }
+.form-section-title { color: #3f1174ff; font-size: 20px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 10px; }
+.password-form { background: #f9f7ff; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #7405f1ff; }
+.password-title { color: #3f1174ff; font-size: 20px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; }
+.password-form-group { margin-bottom: 20px; }
+.password-label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px; }
+.password-input { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; transition: border 0.3s; max-width: 400px; }
+.password-input:focus { outline: none; border-color: #7405f1ff; box-shadow: 0 0 0 2px rgba(116, 5, 241, 0.1); }
+.password-requirements { margin-top: 25px; padding-top: 20px; border-top: 1px dashed #ccc; }
+.requirements-title { color: #666; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.requirements-list { list-style: none; padding: 0; margin: 0; }
+.requirements-list li { color: #666; font-size: 13px; margin-bottom: 8px; padding-left: 20px; position: relative; }
+.requirements-list li:before { content: "•"; position: absolute; left: 0; color: #7405f1ff; }
+.form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px; }
+.form-group { margin-bottom: 15px; }
+.form-group.full-width { grid-column: 1 / -1; }
+.form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+.form-group input { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; transition: border 0.3s; }
+.form-group input:focus { outline: none; border-color: #7405f1ff; box-shadow: 0 0 0 2px rgba(116, 5, 241, 0.1); }
+.form-actions { display: flex; gap: 15px; margin-top: 25px; }
+.btn { padding: 12px 25px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.btn-primary { background: #7405f1ff; color: white; }
+.btn-primary:hover { background: #5a04c2; }
+.btn-secondary { background: #6c757d; color: white; }
+.btn-secondary:hover { background: #5a6268; }
+.alert { padding: 15px 20px; border-radius: 4px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.status-active { background: #d4edda; color: #155724; }
+.status-admin { background: #cce5ff; color: #004085; }
+.status-security { background: #fff3cd; color: #856404; }
+.divider { height: 1px; background: #e0e0e0; margin: 20px 0; border: none; }
+@media (max-width: 1024px) { .profile-container { flex-direction: column; } .profile-left { flex: none; } .profile-info-grid { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } .password-input { max-width: 100%; } }
+@media (max-width: 768px) { .main-container { margin-left: 0; width: 100%; padding: 20px; } .profile-container { padding: 15px; } .form-section, .password-form { padding: 15px; } }
     </style>
 </head>
 <body>
@@ -785,8 +294,6 @@ $_SESSION['last_activity'] = time();
     </nav>
 
     <div class="container main-container" id="mainContainer">
-        <h1 class="mb-4"><i class="fas fa-user-shield"></i> Admin Profile</h1>
-        
         <!-- Success/Error Messages -->
         <?php if ($update_success): ?>
             <div class="alert alert-success">
@@ -1046,6 +553,35 @@ $_SESSION['last_activity'] = time();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let timeout = 60;        
+    let warningTime = 10; // show warning 10s before timeout
+    let countdown;
+
+    function startTimer() {
+        clearTimeout(countdown);
+    
+    countdown = setTimeout(() => {
+        let stay = confirm(
+            "Your session will expire soon.\n\nClick OK to continue or Cancel to logout."
+        );
+        
+        if (stay) {
+            // Ping server to refresh session
+            fetch("keep_alive.php")
+            .then(() => {
+                startTimer(); // restart timer
+            });
+        } else {
+            window.location.href = "Logout.php";
+        }
+    }, (timeout - warningTime) * 1000);
+}
+// Restart timer on user activity
+["click", "mousemove", "keypress"].forEach(event => {
+    document.addEventListener(event, startTimer);
+});
+// Start timer on page load
+startTimer();
         // Sidebar Toggle Functionality (same as ParkingArea.php)
         document.addEventListener('DOMContentLoaded', function() {
             const sidebarToggle = document.getElementById('sidebarToggle');

@@ -2,11 +2,6 @@
 // Start the session
 session_start();
 
-// Enable error reporting but don't display errors
-error_reporting(E_ALL);
-ini_set('display_errors', 0); // Don't display errors on screen
-ini_set('log_errors', 1); // Log errors instead
-
 // Database connection parameters
 $conn = new mysqli("localhost", "root", "", "FKParkSystem", 3307);
 
@@ -383,232 +378,56 @@ if ($result) {
     $areas = $result->fetch_all(MYSQLI_ASSOC);
 }
 
+// 60 seconds inactivity timeout
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 60) {
+    session_unset();
+    session_destroy();
+    header("Location: Login.php");
+    exit();
+}
+// Update activity time on every request
+$_SESSION['last_activity'] = time();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FK Park System - Parking Area Management</title>
+    <title>Parking Area</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f5f5f5;
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .header{
-            background-color: #d373d3ff; 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-            position: fixed;
-            width: 100%;
-            height: 120px;
-            box-sizing: border-box;
-            z-index: 1000;
-            top: 0;
-            left: 0;
-        }
-        .header-left{
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 0 35px;
-        }
-        .header-right{
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding-right: 20px;
-        }
-        .togglebutton {
-            background-color: #daa5dad7;
-            color: white;
-            border: 1px solid #d890d89c;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .togglebutton:hover {
-            background-color: #864281ff;
-        }
-        .logo{
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            padding: 0 60px;
-        }
-        .logo img{
-            height: 90px;
-            width: auto;
-        }
-        .sidebar{
-            background-color: #cf51cfff;
-            width: 250px;
-            color: black;
-            position: fixed;
-            top: 120px;
-            left: 0;
-            bottom: 0;
-            padding: 20px 0;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-            z-index: 999;
-        }
-        .sidebar.collapsed {
-            transform: translateX(-250px);
-            opacity: 0;
-            width: 0;
-            padding: 0;
-        }
-        .sidebartitle{
-            color: black;
-            font-size: 1rem;
-            margin-bottom: 20px;
-            padding: 0 20px;
-        }
-        /* Main Content Adjustment */
-        .main-container.sidebar-collapsed {
-            margin-left: 0;
-            transition: margin-left 0.3s ease;
-        }
-        .menu{
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            padding: 0;
-            margin: 0;
-            list-style: none;
-        }
-        .menutext{
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 14px 18px;
-            color: black;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .menu a {
-            text-decoration: none;
-            color: inherit;
-        }  
-        .menutext:hover {
-            background-color: #a03198d5;
-        }   
-        .menutext.active {
-            background-color: #a03198d5;
-            font-weight: 500;
-        }
-        .profile{
-            background-color: #7405f1ff;
-            color: white;
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-        .profile:hover {
-            background-color: #2e0c55ff;
-        }
-        .logoutbutton {
-            background-color: rgba(255, 0, 0, 0.81);
-            color: white;
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-        .main-container {
-            margin-left: 250px;
-            margin-top: 120px;
-            padding: 40px;
-            box-sizing: border-box;
-            flex: 1;
-            transition: margin-left 0.3s ease;
-            width: calc(100% - 250px);
-        }
-        .main-container.sidebar-collapsed {
-            margin-left: 0;
-            width: 100%;
-        }
-        .form-container {
-            background-color: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-        }
-        .btn-add {
-            background: #0066cc;
-            padding: 8px 12px;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-        .action-links a {
-            margin-right: 10px;
-            text-decoration: none;
-            color: #0066cc;
-        }
-        footer {
-            background-color: #b8a6ccff;
-            color: white;
-            padding: 15px 0;
-            text-align: center;
-            width: 100%;
-            margin-top: auto;
-            position: relative;
-            bottom: 0;
-            left: 0;
-            transition: margin-left 0.3s ease;
-        }
-        footer.sidebar-collapsed {
-            margin-left: 0;
-        }    
-        .area-card {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            transition: box-shadow 0.3s ease;
-        }      
-        .area-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-        }     
-        .btn-edit {
-            background-color: #ffc107;
-            color: #212529;
-            border: 1px solid #ffc107;
-        }     
-        .btn-edit:hover {
-            background: #e0a800;
-            border-color: #e0a800;
-            color: #000;
-        }
+        body { background-color: #f5f5f5; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .header { background-color: #d373d3ff; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; position: fixed; width: 100%; height: 120px; box-sizing: border-box; z-index: 1000; top: 0; left: 0; }
+        .header-left { display: flex; align-items: center; gap: 20px; padding: 0 35px; }
+        .header-right { display: flex; align-items: center; gap: 20px; padding-right: 20px; }
+        .togglebutton { background-color: #daa5dad7; color: white; border: 1px solid #d890d89c; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .togglebutton:hover { background-color: #864281ff; }
+        .logo { display: flex; gap: 20px; align-items: center; padding: 0 60px; }
+        .logo img { height: 90px; width: auto; }
+        .sidebar { background-color: #c277c2ff; width: 250px; color: white; position: fixed; top: 120px; left: 0; bottom: 0; padding: 20px 0; box-sizing: border-box; transition: all 0.3s ease; z-index: 999; }
+        .sidebar.collapsed { transform: translateX(-250px); opacity: 0; width: 0; padding: 0; }
+        .sidebartitle { color: white; font-size: 1rem; margin-bottom: 20px; padding: 0 20px; }
+        .main-container.sidebar-collapsed { margin-left: 0; transition: margin-left 0.3s ease; }
+        .menu { display: flex; flex-direction: column; gap: 18px; padding: 0; margin: 0; list-style: none; }
+        .menutext { background-color: rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 14px 18px; color: black; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 20px; }
+        .menu a { text-decoration: none; color: white; }
+        .menutext:hover { background-color: #a03198d5; }
+        .menutext.active { background-color: #a03198d5; font-weight: 500; }
+        .profile { background-color: #7405f1ff; color: white; border: 1px solid rgba(0, 0, 0, 0.3); padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; transition: all 0.2s; text-decoration: none; }
+        .profile:hover { background-color: #2e0c55ff; }
+        .logoutbutton { background-color: rgba(255, 0, 0, 0.81); color: white; border: 1px solid rgba(0, 0, 0, 0.3); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; text-decoration: none; }
+        .main-container { margin-left: 250px; margin-top: 120px; padding: 40px; box-sizing: border-box; flex: 1; transition: margin-left 0.3s ease; width: calc(100% - 250px); }
+        .main-container.sidebar-collapsed { margin-left: 0; width: 100%; }
+        .form-container { background-color: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+        .btn-add { background: #0066cc; padding: 8px 12px; color: white; text-decoration: none; border-radius: 4px; }
+        .action-links a { margin-right: 10px; text-decoration: none; color: #0066cc; }
+        footer { background-color: #b8a6ccff; color: white; padding: 15px 0; text-align: center; width: 100%; margin-top: auto; position: relative; bottom: 0; left: 0; transition: margin-left 0.3s ease; }
+        footer.sidebar-collapsed { margin-left: 0; }
+        .area-card { border: 1px solid #dee2e6; border-radius: 8px; transition: box-shadow 0.3s ease; }
+        .area-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.2); }
+        .btn-edit { background-color: #ffc107; color: #212529; border: 1px solid #ffc107; }
+        .btn-edit:hover { background: #e0a800; border-color: #e0a800; color: #000; }
     </style>
 </head>
 <body>
@@ -832,6 +651,36 @@ if ($result) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+        let timeout = 60;        
+    let warningTime = 10; // show warning 10s before timeout
+    let countdown;
+
+    function startTimer() {
+        clearTimeout(countdown);
+    
+    countdown = setTimeout(() => {
+        let stay = confirm(
+            "Your session will expire soon.\n\nClick OK to continue or Cancel to logout."
+        );
+        
+        if (stay) {
+            // Ping server to refresh session
+            fetch("keep_alive.php")
+            .then(() => {
+                startTimer(); // restart timer
+            });
+        } else {
+            window.location.href = "Logout.php";
+        }
+    }, (timeout - warningTime) * 1000);
+}
+// Restart timer on user activity
+["click", "mousemove", "keypress"].forEach(event => {
+    document.addEventListener(event, startTimer);
+});
+// Start timer on page load
+startTimer();
+
     // Global variable to store modal instance
     let editModalInstance = null;
 

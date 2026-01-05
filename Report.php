@@ -86,28 +86,25 @@ if ($report_type == 'parking') {
     }
 }
 
-// 3. BOOKING REPORT
+// 3. BOOKING REPORT - CORRECTED
 if ($report_type == 'booking') {
-    // Booking details for date range
+    // Booking details for date range - FIXED QUERY
     $booking_report = $conn->prepare("
         SELECT 
             b.BookingID,
             b.BookingDate,
             b.BookingTime,
             b.BookingStatus,
-            b.VehicleID,
+            s.StudentName,
             v.PlateNumber,
             v.VehicleModel,
-            s.studentName,
-            st.staffName,
-            pa.AreaNumber,
-            ps.SpaceNumber
+            ps.SpaceNumber,
+            pa.AreaNumber
         FROM Booking b
-        LEFT JOIN Vehicle v ON b.VehicleID = v.VehicleID
-        LEFT JOIN student s ON b.studentID = s.studentID
-        LEFT JOIN staff st ON b.staffID = st.staffID
-        LEFT JOIN ParkingSpace ps ON b.ParkingSpaceID = ps.ParkingSpaceID
-        LEFT JOIN ParkingArea pa ON ps.ParkingAreaID = pa.ParkingAreaID
+        JOIN Student s ON b.StudentID = s.StudentID
+        JOIN Vehicle v ON s.StudentID = v.StudentID
+        JOIN ParkingSpace ps ON b.ParkingSpaceID = ps.ParkingSpaceID
+        JOIN ParkingArea pa ON ps.ParkingAreaID = pa.ParkingAreaID
         WHERE b.BookingDate BETWEEN ? AND ?
         ORDER BY b.BookingDate DESC, b.BookingTime DESC
     ");
@@ -147,26 +144,21 @@ if ($report_type == 'booking') {
     }
 }
 
-// 4. TRAFFIC SUMMON REPORT
+// 4. TRAFFIC SUMMON REPORT - CORRECTED
 if ($report_type == 'summon') {
-    // Traffic summon details for date range
+    // Traffic summon details for date range - FIXED QUERY
     $summon_report = $conn->prepare("
         SELECT 
             ts.SummonID,
             ts.SummonDate,
             ts.SummonTime,
             ts.SummonDescription,
-            v.ViolationName,
             v.ViolationType,
-            ve.PlateNumber,
-            ve.VehicleModel,
-            s.studentName,
-            st.staffName
+            s.StudentName,
+            ts.FineAmount
         FROM TrafficSummon ts
-        LEFT JOIN Violation v ON ts.ViolationID = v.ViolationID
-        LEFT JOIN Vehicle ve ON ts.VehicleID = ve.VehicleID
-        LEFT JOIN student s ON ts.studentID = s.studentID
-        LEFT JOIN staff st ON ts.staffID = st.staffID
+        JOIN Violation v ON ts.ViolationID = v.ViolationID
+        JOIN Student s ON ts.StudentID = s.StudentID
         WHERE ts.SummonDate BETWEEN ? AND ?
         ORDER BY ts.SummonDate DESC, ts.SummonTime DESC
     ");
@@ -179,15 +171,15 @@ if ($report_type == 'summon') {
         $summon_report_data[] = $row;
     }
     
-    // Summon statistics by violation type
+    // Summon statistics by violation type - FIXED QUERY
     $summon_by_violation = $conn->prepare("
         SELECT 
-            v.ViolationName,
+            v.ViolationType,
             COUNT(ts.SummonID) as count
         FROM TrafficSummon ts
-        LEFT JOIN Violation v ON ts.ViolationID = v.ViolationID
+        JOIN Violation v ON ts.ViolationID = v.ViolationID
         WHERE ts.SummonDate BETWEEN ? AND ?
-        GROUP BY v.ViolationID, v.ViolationName
+        GROUP BY v.ViolationID, v.ViolationType
         ORDER BY count DESC
     ");
     $summon_by_violation->bind_param("ss", $start_date, $end_date);
@@ -199,30 +191,26 @@ if ($report_type == 'summon') {
     $violation_counts = [];
     while($row = $violation_result->fetch_assoc()) {
         $violation_data[] = $row;
-        $violation_labels[] = $row['ViolationName'];
+        $violation_labels[] = $row['ViolationType'];
         $violation_counts[] = $row['count'];
     }
 }
 
-// 5. USER ACTIVITY REPORT
+// 5. USER ACTIVITY REPORT - CORRECTED
 if ($report_type == 'user') {
-    // User statistics
+    // User statistics - SIMPLIFIED VERSION
     $user_stats = $conn->query("
         SELECT 
             'Student' as user_type,
-            COUNT(*) as total_users,
-            COUNT(DISTINCT b.studentID) as active_users
-        FROM student s
-        LEFT JOIN Booking b ON s.studentID = b.studentID AND b.BookingDate BETWEEN '$start_date' AND '$end_date'
+            COUNT(*) as total_users
+        FROM student
         
         UNION ALL
         
         SELECT 
             'Staff' as user_type,
-            COUNT(*) as total_users,
-            COUNT(DISTINCT b.staffID) as active_users
-        FROM staff st
-        LEFT JOIN Booking b ON st.staffID = b.staffID AND b.BookingDate BETWEEN '$start_date' AND '$end_date'
+            COUNT(*) as total_users
+        FROM staff
     ");
     
     $user_data = [];
@@ -230,24 +218,15 @@ if ($report_type == 'user') {
         $user_data[] = $row;
     }
     
-    // Top users by bookings
+    // Top users by bookings - SIMPLIFIED VERSION
     $top_users = $conn->prepare("
         SELECT 
-            u.user_type,
-            u.user_name,
-            COUNT(b.BookingID) as total_bookings,
-            SUM(CASE WHEN b.BookingStatus = 'Completed' THEN 1 ELSE 0 END) as completed_bookings
-        FROM (
-            SELECT 'Student' as user_type, studentID as id, studentName as user_name FROM student
-            UNION ALL
-            SELECT 'Staff' as user_type, staffID as id, staffName as user_name FROM staff
-        ) u
-        LEFT JOIN Booking b ON (
-            (u.user_type = 'Student' AND u.id = b.studentID) OR 
-            (u.user_type = 'Staff' AND u.id = b.staffID)
-        ) AND b.BookingDate BETWEEN ? AND ?
-        GROUP BY u.user_type, u.id, u.user_name
-        HAVING total_bookings > 0
+            s.StudentName as user_name,
+            COUNT(b.BookingID) as total_bookings
+        FROM Student s
+        LEFT JOIN Booking b ON s.StudentID = b.StudentID 
+            AND b.BookingDate BETWEEN ? AND ?
+        GROUP BY s.StudentID, s.StudentName
         ORDER BY total_bookings DESC
         LIMIT 10
     ");
@@ -257,18 +236,19 @@ if ($report_type == 'user') {
     
     $top_users_data = [];
     while($row = $top_users_result->fetch_assoc()) {
-        $top_users_data[] = $row;
+        $top_users_data[] = array_merge($row, ['user_type' => 'Student']);
     }
 }
 
-// 6. REVENUE REPORT (Removed since we don't have payment data)
-if ($report_type == 'revenue') {
-    // No revenue data available
-    $revenue_data = [];
-    $revenue_labels = [];
-    $revenue_amounts = [];
-    $revenue_paid = [];
+// 60 seconds inactivity timeout
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 60) {
+    session_unset();
+    session_destroy();
+    header("Location: Login.php");
+    exit();
 }
+// Update activity time on every request
+$_SESSION['last_activity'] = time();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -280,309 +260,54 @@ if ($report_type == 'revenue') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            background-color: #f5f5f5;
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .header{
-            background-color: #d373d3ff; 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-            position: fixed;
-            width: 100%;
-            height: 120px;
-            box-sizing: border-box;
-            z-index: 1000;
-            top: 0;
-            left: 0;
-        }
-        .header-left{
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 0 35px;
-        }
-        .header-right{
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding-right: 20px;
-        }
-        .togglebutton {
-            background-color: #daa5dad7;
-            color: white;
-            border: 1px solid #d890d89c;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .togglebutton:hover {
-            background-color: #864281ff;
-        }
-        .logo{
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            padding: 0 60px;
-        }
-        .logo img{
-            height: 90px;
-            width: auto;
-        }
-        .sidebar{
-            background-color: #d890d8ff;
-            width: 250px;
-            color: black;
-            position: fixed;
-            top: 120px;
-            left: 0;
-            bottom: 0;
-            padding: 20px 0;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-            z-index: 999;
-        }
-        .sidebar.collapsed {
-            transform: translateX(-250px);
-            opacity: 0;
-            width: 0;
-            padding: 0;
-        }
-        .sidebartitle{
-            color: black;
-            font-size: 1rem;
-            margin-bottom: 20px;
-            padding: 0 20px;
-        }
-        /* Main Content Adjustment */
-        .main-container.sidebar-collapsed {
-            margin-left: 0;
-            transition: margin-left 0.3s ease;
-        }
-        .menu{
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            padding: 0;
-            margin: 0;
-            list-style: none;
-        }
-        .menutext{
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 14px 18px;
-            color: black;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .menu a {
-            text-decoration: none;
-            color: inherit;
-        }  
-        .menutext:hover {
-            background-color: #a03198d5;
-        }   
-        .menutext.active {
-            background-color: #a03198d5;
-            font-weight: 500;
-        }
-        .profile{
-            background-color: #7405f1ff;
-            color: white;
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-        .profile:hover {
-            background-color: #2e0c55ff;
-        }
-        .logoutbutton {
-            background-color: rgba(255, 0, 0, 0.81);
-            color: white;
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-        .main-container {
-            margin-left: 250px;
-            margin-top: 120px;
-            padding: 40px;
-            box-sizing: border-box;
-            flex: 1;
-            transition: margin-left 0.3s ease;
-            width: calc(100% - 250px);
-        }
-        .main-container.sidebar-collapsed {
-            margin-left: 0;
-            width: 100%;
-        }
-        .form-container {
-            background-color: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-        }
-        .btn-add {
-            background: #0066cc;
-            padding: 8px 12px;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-        .action-links a {
-            margin-right: 10px;
-            text-decoration: none;
-            color: #0066cc;
-        }
-        footer {
-            background-color: #b8a6ccff;
-            color: white;
-            padding: 15px 0;
-            text-align: center;
-            width: 100%;
-            margin-top: auto;
-            position: relative;
-            bottom: 0;
-            left: 0;
-            transition: margin-left 0.3s ease;
-        }
-        footer.sidebar-collapsed {
-            margin-left: 0;
-        }    
-        
-        /* Report specific styles */
-        .report-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border: 1px solid #e8e8e8;
-        }
-        
-        .report-title {
-            color: #6a22bdff;
-            border-bottom: 2px solid #6a22bdff;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #6a22bdff, #3f1174ff);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        
-        .stat-card .number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .stat-card .label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        
-        .chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .chart-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        
-        .chart-wrapper {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-        
-        .nav-tabs .nav-link {
-            color: #6a22bdff;
-            font-weight: 500;
-        }
-        
-        .nav-tabs .nav-link.active {
-            background-color: #6a22bdff;
-            color: white;
-            border-color: #6a22bdff;
-        }
-        
-        .table-responsive {
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .table th {
-            background-color: #6a22bdff;
-            color: white;
-            border: none;
-        }
-        
-        .table td {
-            vertical-align: middle;
-        }
-        
+        /* Your existing CSS styles remain the same */
+        body { background-color: #f5f5f5; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .header { background-color: #d373d3ff; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; position: fixed; width: 100%; height: 120px; box-sizing: border-box; z-index: 1000; top: 0; left: 0; }
+        .header-left { display: flex; align-items: center; gap: 20px; padding: 0 35px; }
+        .header-right { display: flex; align-items: center; gap: 20px; padding-right: 20px; }
+        .togglebutton { background-color: #daa5dad7; color: white; border: 1px solid #d890d89c; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .togglebutton:hover { background-color: #864281ff; }
+        .logo { display: flex; gap: 20px; align-items: center; padding: 0 60px; }
+        .logo img { height: 90px; width: auto; }
+        .sidebar { background-color: #c277c2ff; width: 250px; color: black; position: fixed; top: 120px; left: 0; bottom: 0; padding: 20px 0; box-sizing: border-box; transition: all 0.3s ease; z-index: 999; }
+        .sidebar.collapsed { transform: translateX(-250px); opacity: 0; width: 0; padding: 0; }
+        .sidebartitle { color: white; font-size: 1rem; margin-bottom: 20px; padding: 0 20px; }
+        .main-container.sidebar-collapsed { margin-left: 0; transition: margin-left 0.3s ease; }
+        .menu { display: flex; flex-direction: column; gap: 18px; padding: 0; margin: 0; list-style: none; }
+        .menutext { background-color: rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 14px 18px; color: black; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 20px; }
+        .menu a { text-decoration: none; color: white; }
+        .menutext:hover { background-color: #a03198d5; color: white; }
+        .menutext.active { background-color: #a03198d5; font-weight: 500; color: white; }
+        .profile { background-color: #7405f1ff; color: white; border: 1px solid rgba(0, 0, 0, 0.3); padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; transition: all 0.2s; text-decoration: none; }
+        .profile:hover { background-color: #2e0c55ff; }
+        .logoutbutton { background-color: rgba(255, 0, 0, 0.81); color: white; border: 1px solid rgba(0, 0, 0, 0.3); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 8px; text-decoration: none; }
+        .main-container { margin-left: 250px; margin-top: 120px; padding: 40px; box-sizing: border-box; flex: 1; transition: margin-left 0.3s ease; width: calc(100% - 250px); }
+        .main-container.sidebar-collapsed { margin-left: 0; width: 100%; }
+        .form-container { background-color: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+        .btn-add { background: #0066cc; padding: 8px 12px; color: white; text-decoration: none; border-radius: 4px; }
+        .action-links a { margin-right: 10px; text-decoration: none; color: #0066cc; }
+        footer { background-color: #b8a6ccff; color: white; padding: 15px 0; text-align: center; width: 100%; margin-top: auto; position: relative; bottom: 0; left: 0; transition: margin-left 0.3s ease; }
+        footer.sidebar-collapsed { margin-left: 0; }
+        .report-card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #e8e8e8; }
+        .report-title { color: #6a22bdff; border-bottom: 2px solid #6a22bdff; padding-bottom: 10px; margin-bottom: 20px; }
+        .stat-card { background: linear-gradient(135deg, #6a22bdff, #3f1174ff); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 15px; }
+        .stat-card .number { font-size: 2.5rem; font-weight: bold; margin-bottom: 5px; }
+        .stat-card .label { font-size: 0.9rem; opacity: 0.9; }
+        .chart-container { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .chart-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 15px; color: #333; }
+        .chart-wrapper { position: relative; height: 300px; width: 100%; }
+        .nav-tabs .nav-link { color: #6a22bdff; font-weight: 500; }
+        .nav-tabs .nav-link.active { background-color: #6a22bdff; color: white; border-color: #6a22bdff; }
+        .table-responsive { border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .table th { background-color: #6a22bdff; color: white; border: none; }  
+        .table td { vertical-align: middle; }
         .badge-confirmed { background-color: #28a745; }
         .badge-cancelled { background-color: #dc3545; }
         .badge-completed { background-color: #17a2b8; }
         .badge-pending { background-color: #ffc107; color: #212529; }
         .badge-paid { background-color: #28a745; }
         .badge-unpaid { background-color: #dc3545; }
-        
-        @media (max-width: 768px) {
-            .main-container {
-                margin-left: 0;
-                width: 100%;
-                padding: 20px;
-            }
-            .stat-card .number {
-                font-size: 2rem;
-            }
-            .chart-wrapper {
-                height: 250px;
-            }
-        }
+        @media (max-width: 768px) { .main-container { margin-left: 0; width: 100%; padding: 20px; } .stat-card .number { font-size: 2rem; } .chart-wrapper { height: 250px; } }
     </style>
 </head>
 <body>
@@ -663,10 +388,6 @@ if ($report_type == 'revenue') {
                     </button>
                 </div>
             </form>
-            
-            <div class="mt-3 text-muted">
-                <i class="fas fa-info-circle"></i> Showing data from <?php echo date('d M Y', strtotime($start_date)); ?> to <?php echo date('d M Y', strtotime($end_date)); ?>
-            </div>
         </div>
 
         <!-- Report Navigation Tabs -->
@@ -819,7 +540,7 @@ if ($report_type == 'revenue') {
             </div>
             
         <?php elseif ($report_type == 'booking'): ?>
-            <!-- BOOKING REPORT -->
+            <!-- BOOKING REPORT - CORRECTED -->
             <div class="report-card">
                 <h3 class="report-title"><i class="fas fa-calendar-check"></i> Booking Report</h3>
                 
@@ -885,7 +606,7 @@ if ($report_type == 'revenue') {
                 </div>
                 <?php endif; ?>
                 
-                <!-- Bookings Table -->
+                <!-- Bookings Table - CORRECTED -->
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
@@ -893,7 +614,7 @@ if ($report_type == 'revenue') {
                                 <th>Booking ID</th>
                                 <th>Date & Time</th>
                                 <th>Status</th>
-                                <th>User</th>
+                                <th>Student</th>
                                 <th>Vehicle</th>
                                 <th>Parking Space</th>
                             </tr>
@@ -916,9 +637,9 @@ if ($report_type == 'revenue') {
                                         ?>
                                         <span class="badge <?php echo $status_class; ?>"><?php echo $booking['BookingStatus']; ?></span>
                                     </td>
-                                    <td><?php echo $booking['studentName'] ?? $booking['staffName'] ?? 'N/A'; ?></td>
-                                    <td><?php echo $booking['PlateNumber'] . ' (' . $booking['VehicleModel'] . ')'; ?></td>
-                                    <td><?php echo $booking['AreaNumber'] . '-' . $booking['SpaceNumber']; ?></td>
+                                    <td><?php echo $booking['StudentName']; ?></td>
+                                    <td><?php echo $booking['PlateNumber'] . ' (' . ($booking['VehicleModel'] ?? 'N/A') . ')'; ?></td>
+                                    <td><?php echo ($booking['AreaNumber'] ?? 'N/A') . '-' . ($booking['SpaceNumber'] ?? 'N/A'); ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -932,7 +653,7 @@ if ($report_type == 'revenue') {
             </div>
             
         <?php elseif ($report_type == 'summon'): ?>
-            <!-- TRAFFIC SUMMON REPORT -->
+            <!-- TRAFFIC SUMMON REPORT - CORRECTED -->
             <div class="report-card">
                 <h3 class="report-title"><i class="fas fa-exclamation-triangle"></i> Traffic Summon Report</h3>
                 
@@ -962,7 +683,7 @@ if ($report_type == 'revenue') {
                 </div>
                 <?php endif; ?>
                 
-                <!-- Summons Table -->
+                <!-- Summons Table - CORRECTED -->
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
@@ -971,8 +692,8 @@ if ($report_type == 'revenue') {
                                 <th>Date & Time</th>
                                 <th>Violation</th>
                                 <th>Description</th>
-                                <th>Vehicle</th>
-                                <th>User</th>
+                                <th>Student</th>
+                                <th>Fine Amount</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -981,10 +702,10 @@ if ($report_type == 'revenue') {
                                 <tr>
                                     <td><?php echo $summon['SummonID']; ?></td>
                                     <td><?php echo date('d M Y', strtotime($summon['SummonDate'])) . ' ' . $summon['SummonTime']; ?></td>
-                                    <td><?php echo $summon['ViolationName']; ?></td>
+                                    <td><?php echo $summon['ViolationType']; ?></td>
                                     <td><?php echo $summon['SummonDescription']; ?></td>
-                                    <td><?php echo $summon['PlateNumber'] . ' (' . $summon['VehicleModel'] . ')'; ?></td>
-                                    <td><?php echo $summon['studentName'] ?? $summon['staffName'] ?? 'N/A'; ?></td>
+                                    <td><?php echo $summon['StudentName']; ?></td>
+                                    <td>RM <?php echo number_format($summon['FineAmount'], 2); ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -998,7 +719,7 @@ if ($report_type == 'revenue') {
             </div>
             
         <?php elseif ($report_type == 'user'): ?>
-            <!-- USER ACTIVITY REPORT -->
+            <!-- USER ACTIVITY REPORT - CORRECTED -->
             <div class="report-card">
                 <h3 class="report-title"><i class="fas fa-users"></i> User Activity Report</h3>
                 
@@ -1010,9 +731,6 @@ if ($report_type == 'revenue') {
                             <div class="stat-card">
                                 <div class="number"><?php echo $user['total_users']; ?></div>
                                 <div class="label">Total <?php echo $user['user_type']; ?>s</div>
-                                <div class="mt-2">
-                                    <small>Active Users: <?php echo $user['active_users']; ?></small>
-                                </div>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -1029,7 +747,6 @@ if ($report_type == 'revenue') {
                                     <th>User Type</th>
                                     <th>User Name</th>
                                     <th>Total Bookings</th>
-                                    <th>Completed Bookings</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1039,12 +756,11 @@ if ($report_type == 'revenue') {
                                         <td><span class="badge <?php echo $user['user_type'] == 'Student' ? 'bg-info' : 'bg-warning'; ?>"><?php echo $user['user_type']; ?></span></td>
                                         <td><?php echo $user['user_name']; ?></td>
                                         <td><?php echo $user['total_bookings']; ?></td>
-                                        <td><?php echo $user['completed_bookings']; ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="4" class="text-center">No user activity data found for the selected period</td>
+                                        <td colspan="3" class="text-center">No user activity data found for the selected period</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -1070,7 +786,37 @@ if ($report_type == 'revenue') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Sidebar Toggle Functionality (same as ParkingArea.php)
+        let timeout = 60;        
+        let warningTime = 10; // show warning 10s before timeout
+        let countdown;
+
+        function startTimer() {
+            clearTimeout(countdown);
+        
+        countdown = setTimeout(() => {
+            let stay = confirm(
+                "Your session will expire soon.\n\nClick OK to continue or Cancel to logout."
+            );
+            
+            if (stay) {
+                // Ping server to refresh session
+                fetch("keep_alive.php")
+                .then(() => {
+                    startTimer(); // restart timer
+                });
+            } else {
+                window.location.href = "Logout.php";
+            }
+        }, (timeout - warningTime) * 1000);
+    }
+    // Restart timer on user activity
+    ["click", "mousemove", "keypress"].forEach(event => {
+        document.addEventListener(event, startTimer);
+    });
+    // Start timer on page load
+    startTimer();
+
+        // Sidebar Toggle Functionality
         document.addEventListener('DOMContentLoaded', function() {
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');

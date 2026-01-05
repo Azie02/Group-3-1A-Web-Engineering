@@ -9,33 +9,51 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     exit();
 }
 
-$totalSummonsQuery = "SELECT COUNT(*) as count FROM TrafficSummon";
-$totalSummons = $conn->query($totalSummonsQuery)->fetch_assoc()['count'];
+if (isset($_GET['delete_id'])) {
+    $deleteID = $_GET['delete_id'];
+    //Delete with QRcode of traffic summon
+    $qrSql = "SELECT QRCodeID FROM TrafficSummon WHERE SummonID = '$deleteID'";
+    $qrResult = $conn->query($qrSql);
 
-$pendingVehiclesQuery = "SELECT COUNT(*) as count FROM Vehicle WHERE VehicleApproval = 'Pending'";
-$pendingVehicles = $conn->query($pendingVehiclesQuery)->fetch_assoc()['count'];
+    if ($qrResult->num_rows > 0) {
+        $qrRow = $qrResult->fetch_assoc();
+        $qrID = $qrRow['QRCodeID'];
 
-$violationData = [];
-$violationLabels = [];
-$vQuery = "SELECT v.ViolationType, COUNT(ts.SummonID) as count 
-           FROM TrafficSummon ts 
-           JOIN Violation v ON ts.ViolationID = v.ViolationID 
-           GROUP BY v.ViolationType";
-$vResult = $conn->query($vQuery);
-while($row = $vResult->fetch_assoc()) {
-    $violationLabels[] = $row['ViolationType'];
-    $violationData[] = $row['count'];
+        $deleteSql = "DELETE FROM TrafficSummon WHERE SummonID = '$deleteID'";
+        if ($conn->query($deleteSql) === TRUE) {
+
+            $conn->query("DELETE FROM QRCode WHERE QRCodeID = '$qrID'");
+            
+            echo "<script>alert('Summon deleted successfully.'); window.location.href='TrafficSummon.php';</script>";
+        } else {
+            echo "<script>alert('Error deleting summon: " . $conn->error . "');</script>";
+        }
+    } else {
+         $deleteSql = "DELETE FROM TrafficSummon WHERE SummonID = '$deleteID'";
+         if ($conn->query($deleteSql) === TRUE) {
+            echo "<script>alert('Summon deleted successfully.'); window.location.href='TrafficSummon.php';</script>";
+         } else {
+            echo "<script>alert('Error deleting summon: " . $conn->error . "');</script>";
+         }
+    }
 }
 
-$trendData = [];
-$trendLabels = [];
-for ($i = 6; $i >= 0; $i--) {
-    $date = date('Y-m-d', strtotime("-$i days"));
-    $trendLabels[] = date('M d', strtotime($date));
-    
-    $tQuery = "SELECT COUNT(*) as count FROM TrafficSummon WHERE SummonDate = '$date'";
-    $trendData[] = $conn->query($tQuery)->fetch_assoc()['count'];
+$search = "";
+if (isset($_GET['search'])) {
+    $search = $_GET['search'];
 }
+
+$sql = "SELECT ts.*, v.ViolationType, veh.PlateNumber
+        FROM TrafficSummon ts 
+        LEFT JOIN Violation v ON ts.ViolationID = v.ViolationID
+        LEFT JOIN Vehicle veh ON ts.StudentID = veh.StudentID";
+
+if ($search != "") {
+    $sql .= " WHERE ts.StudentID LIKE '%$search%' OR ts.SummonID LIKE '%$search%'";
+}
+
+
+$result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -43,10 +61,9 @@ for ($i = 6; $i >= 0; $i--) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FK Park System - Security Staff Dashboard</title>
+    <title>FK Park System - Traffic Summon Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             background-color: #f5f5f5;
@@ -124,7 +141,7 @@ for ($i = 6; $i >= 0; $i--) {
             color: white;
         }
         
-        /* STRUCTURAL STYLES (same as ParkingArea.php) */
+        /* STRUCTURAL STYLES */
         .header-left{
             display: flex;
             align-items: center;
@@ -223,6 +240,7 @@ for ($i = 6; $i >= 0; $i--) {
             flex: 1;
             transition: margin-left 0.3s ease;
             width: calc(100% - 250px);
+            min-height: calc(100vh - 120px);
         }
         .main-container.sidebar-collapsed {
             margin-left: 0;
@@ -242,57 +260,138 @@ for ($i = 6; $i >= 0; $i--) {
             margin-left: 0;
         }
         
-        /* Dashboard Specific Styles - Original from SecurityDashboard.php */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        /* Traffic Summon Specific Styles */
+        .page-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-        }
-        .stat-info {
-            text-align: center;
-        }
-        .stat-info h3 {
-            margin: 0;
-            font-size: 2rem;
-            color: #333;
-        }
-        .stat-info p {
-            margin: 5px 0 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-        .charts-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
-        .chart-box {
+        .add-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .add-btn:hover {
+            background-color: #218838;
+            color: white;
+            text-decoration: none;
+        }
+        .searchbar {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+            max-width: 500px;
+        }
+        .searchbar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .searchbar button {
+            background-color: #eb9d43ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .searchbar button:hover {
+            background-color: #6d4e2aff;
+        }
+        .table-container {
             background: white;
-            padding: 20px;
             border-radius: 8px;
+            overflow: hidden;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        .chart-box h3 {
-            margin-top: 0;
-            color: #444;
-            font-size: 1.1rem;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        @media (max-width: 900px) {
-            .charts-container {
-                grid-template-columns: 1fr;
+        table thead {
+            background-color: #eb9d43ff;
+            color: white;
+        }
+        table th, table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+        .view-btn {
+            background-color: #eb9d43ff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .view-btn:hover {
+            background-color: #6d4e2aff;
+            color: white;
+            text-decoration: none;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.3s;
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+            color: white;
+            text-decoration: none;
+        }
+        .fine-amount {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        .status-paid {
+            color: #28a745;
+            font-weight: 500;
+        }
+        .status-unpaid {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .add-btn {
+                align-self: flex-start;
             }
         }
     </style>
@@ -322,7 +421,7 @@ for ($i = 6; $i >= 0; $i--) {
         <h1 class="sidebartitle"><strong>Security Staff</strong></h1>
         <ul class="menu">
             <li>
-                <a href="SecurityStaffDashboard.php" class="menutext active">
+                <a href="SecurityStaffDashboard.php" class="menutext">
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
             </li>
@@ -332,7 +431,7 @@ for ($i = 6; $i >= 0; $i--) {
                 </a>
             </li>
             <li>
-                <a href="TrafficSummon.php" class="menutext">
+                <a href="TrafficSummon.php" class="menutext active">
                     <i class="fas fa-exclamation-triangle"></i> Traffic Summon
                 </a>
             </li>
@@ -340,33 +439,62 @@ for ($i = 6; $i >= 0; $i--) {
     </nav>
 
     <div class="container main-container" id="mainContainer">
-        <h1 class="mb-4"><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h1>
-        
-        <div class="dashboard-grid">
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3><?php echo $totalSummons; ?></h3>
-                    <p>Total Summons Issued</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3><?php echo $pendingVehicles; ?></h3>
-                    <p>Pending Approvals</p>
-                </div>
-            </div>
+        <div class="page-header">
+            <h1><i class="fas fa-exclamation-triangle"></i> Traffic Summon Management</h1>
+            <a href="CreateSummon.php" class="add-btn">
+                <i class="fas fa-plus"></i> Create New Summon
+            </a>
         </div>
+        
+        <form action="TrafficSummon.php" method="get" class="searchbar">
+            <input type="text" name="search" placeholder="Search by Summon ID or Student ID..." value="<?php echo htmlspecialchars($search); ?>">
+            <button type="submit"><i class="fas fa-search"></i> Search</button>
+        </form>
 
-        <div class="charts-container">
-            <div class="chart-box">
-                <h3>Summons by Violation Type</h3>
-                <canvas id="violationChart"></canvas>
-            </div>
-            <div class="chart-box">
-                <h3>Summons Issued (Last 7 Days)</h3>
-                <canvas id="trendChart"></canvas>
-            </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Summon ID</th>
+                        <th>Student ID</th>
+                        <th>Plate No.</th>
+                        <th>Violation Type</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Fine (RM)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    if ($result->num_rows > 0) {
+                        while($row = $result->fetch_assoc()) {
+                            ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($row["SummonID"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["StudentID"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["PlateNumber"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["ViolationType"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["SummonDate"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["SummonTime"]); ?></td>
+                                <td class="fine-amount">RM <?php echo htmlspecialchars($row["FineAmount"]); ?></td>
+                                <td>
+                                    <a href="ViewSummon.php?id=<?php echo $row['SummonID']; ?>" class="view-btn">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <a href="TrafficSummon.php?delete_id=<?php echo $row['SummonID']; ?>" class="delete-btn" onclick="return confirm('Are you sure you want to delete this summon?');">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            <?php
+                        }
+                    } else {
+                        echo '<tr><td colspan="8" style="text-align:center; padding:30px;">No summons found</td></tr>';
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -405,60 +533,6 @@ for ($i = 6; $i >= 0; $i--) {
                     footer.classList.add('sidebar-collapsed');
                 }
             }
-
-            // Charts
-            const violationLabels = <?php echo json_encode($violationLabels); ?>;
-            const violationData = <?php echo json_encode($violationData); ?>;
-            const trendLabels = <?php echo json_encode($trendLabels); ?>;
-            const trendData = <?php echo json_encode($trendData); ?>;
-
-            // Bar Chart
-            const ctx1 = document.getElementById('violationChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: violationLabels,
-                    datasets: [{
-                        label: 'Count',
-                        data: violationData,
-                        backgroundColor: '#eb9d43ff',
-                        borderColor: '#d68a35',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-
-            // Line Chart
-            const ctx2 = document.getElementById('trendChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'line',
-                data: {
-                    labels: trendLabels,
-                    datasets: [{
-                        label: 'Summons Issued',
-                        data: trendData,
-                        borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    }
-                }
-            });
         });
     </script>
 </body>

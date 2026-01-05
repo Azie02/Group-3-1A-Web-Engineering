@@ -9,33 +9,28 @@ if (!isset($_SESSION['user_id']) || $_SESSION['type_user'] !== 'SecurityStaff') 
     exit();
 }
 
-$totalSummonsQuery = "SELECT COUNT(*) as count FROM TrafficSummon";
-$totalSummons = $conn->query($totalSummonsQuery)->fetch_assoc()['count'];
-
-$pendingVehiclesQuery = "SELECT COUNT(*) as count FROM Vehicle WHERE VehicleApproval = 'Pending'";
-$pendingVehicles = $conn->query($pendingVehiclesQuery)->fetch_assoc()['count'];
-
-$violationData = [];
-$violationLabels = [];
-$vQuery = "SELECT v.ViolationType, COUNT(ts.SummonID) as count 
-           FROM TrafficSummon ts 
-           JOIN Violation v ON ts.ViolationID = v.ViolationID 
-           GROUP BY v.ViolationType";
-$vResult = $conn->query($vQuery);
-while($row = $vResult->fetch_assoc()) {
-    $violationLabels[] = $row['ViolationType'];
-    $violationData[] = $row['count'];
+if (isset($_GET['delete_id'])) {
+    $deleteID = $_GET['delete_id'];
+    $deleteSql = "DELETE FROM Vehicle WHERE VehicleID = '$deleteID'";
+    if ($conn->query($deleteSql) === TRUE) {
+        echo "<script>alert('Vehicle deleted successfully.'); window.location.href='VehicleApproval.php';</script>";
+    } else {
+        echo "<script>alert('Error deleting vehicle: " . $conn->error . "');</script>";
+    }
 }
 
-$trendData = [];
-$trendLabels = [];
-for ($i = 6; $i >= 0; $i--) {
-    $date = date('Y-m-d', strtotime("-$i days"));
-    $trendLabels[] = date('M d', strtotime($date));
-    
-    $tQuery = "SELECT COUNT(*) as count FROM TrafficSummon WHERE SummonDate = '$date'";
-    $trendData[] = $conn->query($tQuery)->fetch_assoc()['count'];
+$search = "";
+if (isset($_GET['search'])) {
+    $search = $_GET['search'];
 }
+
+$sql = "SELECT * FROM Vehicle";
+
+if ($search != "") {
+    $sql = "SELECT * FROM Vehicle WHERE StudentID LIKE '%$search%' OR PlateNumber LIKE '%$search%'";
+}
+
+$result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -43,10 +38,9 @@ for ($i = 6; $i >= 0; $i--) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FK Park System - Security Staff Dashboard</title>
+    <title>FK Park System - Vehicle Approval</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             background-color: #f5f5f5;
@@ -124,7 +118,7 @@ for ($i = 6; $i >= 0; $i--) {
             color: white;
         }
         
-        /* STRUCTURAL STYLES (same as ParkingArea.php) */
+        /* STRUCTURAL STYLES */
         .header-left{
             display: flex;
             align-items: center;
@@ -223,6 +217,7 @@ for ($i = 6; $i >= 0; $i--) {
             flex: 1;
             transition: margin-left 0.3s ease;
             width: calc(100% - 250px);
+            min-height: calc(100vh - 120px);
         }
         .main-container.sidebar-collapsed {
             margin-left: 0;
@@ -242,58 +237,92 @@ for ($i = 6; $i >= 0; $i--) {
             margin-left: 0;
         }
         
-        /* Dashboard Specific Styles - Original from SecurityDashboard.php */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        /* Vehicle Approval Specific Styles */
+        .searchbar {
+            margin-bottom: 25px;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            gap: 10px;
+            max-width: 500px;
         }
-        .stat-info {
-            text-align: center;
+        .searchbar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
         }
-        .stat-info h3 {
-            margin: 0;
-            font-size: 2rem;
-            color: #333;
+        .searchbar button {
+            background-color: #eb9d43ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
         }
-        .stat-info p {
-            margin: 5px 0 0;
-            color: #666;
-            font-size: 0.9rem;
+        .searchbar button:hover {
+            background-color: #6d4e2aff;
         }
-        .charts-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .chart-box {
+        .table-container {
             background: white;
-            padding: 20px;
             border-radius: 8px;
+            overflow: hidden;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        .chart-box h3 {
-            margin-top: 0;
-            color: #444;
-            font-size: 1.1rem;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        @media (max-width: 900px) {
-            .charts-container {
-                grid-template-columns: 1fr;
-            }
+        table thead {
+            background-color: #eb9d43ff;
+            color: white;
+        }
+        table th, table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+        .review {
+            background-color: #eb9d43ff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .review:hover {
+            background-color: #6d4e2aff;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.3s;
+            margin-left: 8px;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        .status-pending {
+            color: #ffc107;
+            font-weight: 500;
+        }
+        .status-approved {
+            color: #28a745;
+            font-weight: 500;
+        }
+        .status-rejected {
+            color: #dc3545;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -322,12 +351,12 @@ for ($i = 6; $i >= 0; $i--) {
         <h1 class="sidebartitle"><strong>Security Staff</strong></h1>
         <ul class="menu">
             <li>
-                <a href="SecurityStaffDashboard.php" class="menutext active">
+                <a href="SecurityStaffDashboard.php" class="menutext">
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
             </li>
             <li>
-                <a href="VehicleApproval.php" class="menutext">
+                <a href="VehicleApproval.php" class="menutext active">
                     <i class="fas fa-car"></i> Vehicle Approval
                 </a>
             </li>
@@ -340,33 +369,61 @@ for ($i = 6; $i >= 0; $i--) {
     </nav>
 
     <div class="container main-container" id="mainContainer">
-        <h1 class="mb-4"><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h1>
+        <h1 class="mb-4"><i class="fas fa-car"></i> Vehicle Approval</h1>
         
-        <div class="dashboard-grid">
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3><?php echo $totalSummons; ?></h3>
-                    <p>Total Summons Issued</p>
-                </div>
-            </div>
+        <form action="VehicleApproval.php" method="get" class="searchbar">
+            <input type="text" name="search" placeholder="Search by Student ID or Plate Number..." value="<?php echo htmlspecialchars($search); ?>">
+            <button type="submit"><i class="fas fa-search"></i> Search</button>
+        </form>
 
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3><?php echo $pendingVehicles; ?></h3>
-                    <p>Pending Approvals</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="charts-container">
-            <div class="chart-box">
-                <h3>Summons by Violation Type</h3>
-                <canvas id="violationChart"></canvas>
-            </div>
-            <div class="chart-box">
-                <h3>Summons Issued (Last 7 Days)</h3>
-                <canvas id="trendChart"></canvas>
-            </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Vehicle ID</th>
+                        <th>Student ID</th>
+                        <th>Type</th>
+                        <th>Plate No.</th>
+                        <th>Model</th>
+                        <th>Colour</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    if ($result->num_rows > 0) {
+                        while($row = $result->fetch_assoc()) {
+                            // Determine status class
+                            $statusClass = 'status-' . strtolower($row["VehicleApproval"]);
+                            ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($row["VehicleID"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["StudentID"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["VehicleType"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["PlateNumber"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["VehicleModel"]); ?></td>
+                                <td><?php echo htmlspecialchars($row["VehicleColour"]); ?></td>
+                                <td class="<?php echo $statusClass; ?>">
+                                    <?php echo htmlspecialchars($row["VehicleApproval"]); ?>
+                                </td>
+                                <td>
+                                    <a href="ReviewVehicle.php?id=<?php echo $row['VehicleID']; ?>" class="review">
+                                        <i class="fas fa-eye"></i> Review
+                                    </a>
+                                    <a href="VehicleApproval.php?delete_id=<?php echo $row['VehicleID']; ?>" class="delete-btn" onclick="return confirm('Are you sure you want to delete this vehicle application?');">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            <?php
+                        }
+                    } else {
+                        echo '<tr><td colspan="8" style="text-align:center; padding:30px;">No vehicles found</td></tr>';
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -405,60 +462,6 @@ for ($i = 6; $i >= 0; $i--) {
                     footer.classList.add('sidebar-collapsed');
                 }
             }
-
-            // Charts
-            const violationLabels = <?php echo json_encode($violationLabels); ?>;
-            const violationData = <?php echo json_encode($violationData); ?>;
-            const trendLabels = <?php echo json_encode($trendLabels); ?>;
-            const trendData = <?php echo json_encode($trendData); ?>;
-
-            // Bar Chart
-            const ctx1 = document.getElementById('violationChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: violationLabels,
-                    datasets: [{
-                        label: 'Count',
-                        data: violationData,
-                        backgroundColor: '#eb9d43ff',
-                        borderColor: '#d68a35',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-
-            // Line Chart
-            const ctx2 = document.getElementById('trendChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'line',
-                data: {
-                    labels: trendLabels,
-                    datasets: [{
-                        label: 'Summons Issued',
-                        data: trendData,
-                        borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    }
-                }
-            });
         });
     </script>
 </body>
