@@ -3,8 +3,15 @@ session_start();
 
 // Database connection
 $conn = new mysqli("localhost", "root", "", "FKParkSystem", 3306);
+
+// Check if database connection failed
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
+}
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: Login.php");
+    exit();
 }
 
 // Fetch parking areas
@@ -27,7 +34,8 @@ if (isset($_GET['search'])) {
         )
     ");
 
-    $stmt->bind_param("iss", $area, $date, $time);
+    // FIXED: all are strings
+    $stmt->bind_param("sss", $area, $date, $time);
     $stmt->execute();
     $spaces = $stmt->get_result();
 }
@@ -37,8 +45,8 @@ if (isset($_GET['search'])) {
 <!DOCTYPE html>
 <html>
     <head>
-        <title>StudentDashboard</title>
-        <meta name="desription" content="StudentDashboard">
+        <title>BookingDashboard</title>
+        <meta name="desription" content="BookingDashboard">
         <meta name="author" content="Group1A3">
         <style>
             body {
@@ -334,13 +342,13 @@ if (isset($_GET['search'])) {
             <h1 class="sidebartitle">Student Bar</h1>
             <ul class="menu">
                 <li>
-                    <a href="StudentDashboard.php" class="menutext active">Dashboard</a>
+                    <a href="StudentDashboard.php" class="menutext">Dashboard</a>
                 </li>
                 <li>
                     <a href="VehicleRegistration.php" class="menutext">Vehicle Registration</a>
                 </li>
                 <li>
-                    <a href="Booking.php" class="menutext">Book Parking</a>
+                    <a href="BookingDashboard.php" class="menutext active">Book Parking</a>
                 </li>
                 <li>
                     <a href="DemeritStatus.php" class="menutext">Demerit status</a>
@@ -358,17 +366,17 @@ if (isset($_GET['search'])) {
                             <!-- MAP / IMAGE -->
                             <th rowspan="3" style="width:30%;">
                                 <!-- Map placeholder -->
-                                <img src="UMPLogo.png" alt="Parking Map" width="100%">
+                                <img src="Park.jpeg" alt="Parking Map" width="100%">
                             </th>
 
                             <!-- AREA -->
                             <td>
-                                <label>Select Areas:</label><br>
+                                <label for="area">Select Areas:</label><br>
                                 <select name="area" required>
                                     <option value="">-- Select Area --</option>
                                     <?php while ($row = $areaResult->fetch_assoc()): ?>
                                         <option value="<?= $row['ParkingAreaID'] ?>">
-                                            <?= $row['AreaType'] ?>
+                                            <?= $row['AreaType'] ?> (<?= $row['AreaNumber'] ?>)
                                         </option>
                                     <?php endwhile; ?>
                                 </select>
@@ -420,8 +428,7 @@ if (isset($_GET['search'])) {
                         <td>Available</td>
                         <td><?= $row['SpaceType'] ?></td>
                         <td>
-                            <a href="BookingConfirm.php?space=<?= $row['ParkingSpaceID'] ?>&date=<?= $_GET['date'] ?>&time=<?= $_GET['time'] ?>">
-                            </a>
+                            <a href="BookingConfirm.php?space=<?= $row['ParkingSpaceID'] ?>&date=<?= $_GET['date'] ?>&time=<?= $_GET['time'] ?>"><button>Book</button></a>
                         </td>
                     </tr>
                     <?php endwhile; ?>

@@ -3,7 +3,7 @@
 session_start();
 
 // Database connection parameters
-$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3307);
+$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3306);
 
 // Check if database connection failed
 if ($conn->connect_error) {

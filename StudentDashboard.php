@@ -3,7 +3,7 @@
 session_start();
 
 // Database connection parameters
-$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3307);
+$conn = new mysqli("localhost", "root", "", "FKParkSystem", 3306);
 
 // Check if database connection failed
 if ($conn->connect_error) {
@@ -353,7 +353,7 @@ if (isset($_GET['fsrch']) && $_GET['fsrch'] !== "") {
                     <a href="VehicleRegistration.php" class="menutext">Vehicle Registration</a>
                 </li>
                 <li>
-                    <a href="Booking.php" class="menutext">Book Parking</a>
+                    <a href="BookingDashboard.php" class="menutext">Book Parking</a>
                 </li>
                 <li>
                     <a href="DemeritStatus.php" class="menutext">Demerit status</a>
