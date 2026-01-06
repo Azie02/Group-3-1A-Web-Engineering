@@ -289,6 +289,9 @@ $utilization = $total_spaces > 0 ? round(($occupied_spaces / $total_spaces) * 10
             </div>
         </div>
         <div class="header-right">
+                <span style="color:white; font-weight:500;">
+                    Welcome, <?php echo htmlspecialchars($staff['StaffName']); ?>
+                </span>
             <a href="AdminProfile.php" class="profile">
                 <i class="fas fa-user-circle"></i> My Profile
             </a>
