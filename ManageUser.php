@@ -112,6 +112,7 @@ if (isset($_POST['add_user_submit'])) {
         $sname = $_POST['add_student_name'];
         $scontact = $_POST['add_student_contact'];
         $semail = $_POST['add_student_email'];
+        $spass = $_POST['add_student_password'];
         
         $check = $conn->prepare("SELECT * FROM student WHERE StudentID=?");
         $check->bind_param("s", $sid);
@@ -121,9 +122,12 @@ if (isset($_POST['add_user_submit'])) {
         if ($res->num_rows > 0) {
             $_SESSION['message'] = "<div class='alert alert-danger'>Student ID already exists!</div>";
         } else {
-            $sql = "INSERT INTO student (StudentID, StudentName, StudentContact, StudentEmail) VALUES (?, ?, ?, ?)";
+            // Hash the password before storing
+            $hashed_password = password_hash($spass, PASSWORD_DEFAULT);
+            
+            $sql = "INSERT INTO student (StudentID, StudentName, StudentContact, StudentEmail, StudentPassword) VALUES (?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssss", $sid, $sname, $scontact, $semail);
+            $stmt->bind_param("sssss", $sid, $sname, $scontact, $semail, $spass);
             if ($stmt->execute()) {
                 $_SESSION['message'] = "<div class='alert alert-success'>New student added successfully!</div>";
             } else {
@@ -296,6 +300,9 @@ $_SESSION['last_activity'] = time();
             </div>
         </div>
         <div class="header-right">
+                <span style="color:white; font-weight:500;">
+                    Welcome, <?php echo htmlspecialchars($staff['StaffName']); ?>
+                </span>
             <a href="AdminProfile.php" class="profile">
                 <i class="fas fa-user-circle"></i> My Profile
             </a>
@@ -505,6 +512,11 @@ $_SESSION['last_activity'] = time();
                             <div class="mb-3">
                                 <label class="form-label">Email *</label>
                                 <input type="email" name="add_student_email" id="add_student_email" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password *</label>
+                                <input type="text" name="add_student_password" id="add_student_password" class="form-control" placeholder="Enter password">
+                                <small class="text-muted">Password will be hashed for security</small>
                             </div>
                         </div>
                         <div id="staffFields" style="display:none;">
