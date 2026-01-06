@@ -76,9 +76,12 @@ $listSql = "
         ts.SummonDescription,
         ts.FineAmount,
         v.ViolationType,
-        v.ViolationPoint
+        v.ViolationPoint,
+        qr.Image_URL,
+        qr.QR_Description
     FROM TrafficSummon ts
     LEFT JOIN Violation v ON ts.ViolationID = v.ViolationID
+    LEFT JOIN QRCode qr ON ts.QRCodeID = qr.QRCodeID
     WHERE ts.StudentID = ?
     ORDER BY ts.SummonDate DESC, ts.SummonTime DESC
 ";
@@ -114,6 +117,8 @@ $_SESSION['last_activity'] = time();
     <meta name="description" content="Merit Status">
     <meta name="author" content="Group1A3">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
            background-color: #f5f5f5;
@@ -164,6 +169,22 @@ $_SESSION['last_activity'] = time();
             width: auto;
         }
 
+        /* Toggle Button */
+        .toggle-btn {
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
         .sidebar{
             background-color: #008080;
             width: 250px;
@@ -175,6 +196,45 @@ $_SESSION['last_activity'] = time();
             padding: 20px 0;
             box-sizing: border-box;
             transition: transform 0.3s ease;
+            z-index: 999;
+        }
+
+        .maincontent {
+            margin-left: 250px; /* Default with sidebar open */
+            margin-top: 120px;
+            padding: 40px;
+            box-sizing: border-box;
+            transition: margin-left 0.3s ease;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Add this class for when sidebar is collapsed */
+        .maincontent.collapsed {
+            margin-left: 0; /* When sidebar is collapsed */
+        }
+
+        /* Adjust sidebar for collapsed state */
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        /* Mobile sidebar style */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .maincontent {
+                margin-left: 0;
+            }
+            
+            .maincontent.shifted {
+                margin-left: 250px;
+            }
         }
 
         .sidebartitle{
@@ -203,6 +263,11 @@ $_SESSION['last_activity'] = time();
             display: flex;
             align-items: center;
             gap: 20px;
+        }
+
+        .menu-icon {
+            width: 20px;
+            text-align: center;
         }
 
         .menu a {
@@ -250,13 +315,6 @@ $_SESSION['last_activity'] = time();
            align-items: center;
            gap: 8px;
            text-decoration: none;
-        }
-
-        .maincontent{
-           margin-left: 250px;
-           margin-top: 120px;
-           padding: 40px;
-           box-sizing: border-box;
         }
 
         .content {
@@ -384,10 +442,67 @@ $_SESSION['last_activity'] = time();
            background-color: #80cab1ff;
            color: white;
            padding: 15px 0;
+           margin-top: 40px;
            text-align: center;
+        }
+        
+        /* QR Code Modal Styles */
+        .qr-code-container {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .qr-image {
+            max-width: 300px;
+            height: auto;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+        
+        .summon-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            width: 120px;
+            color: #555;
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: #333;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header {
+                height: 100px;
+            }
+            
+            .sidebar {
+                top: 100px;
+            }
+            
+            .maincontent {
+                margin-top: 100px;
+                padding: 20px;
+            }
         }
     </style>
 </head>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let timeout = 60;
 let warningTime = 10;
@@ -409,15 +524,101 @@ function startTimer() {
     }, (timeout - warningTime) * 1000);
 }
 
+// Toggle sidebar function
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.maincontent');
+    sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('collapsed');
+}
+
+// Close sidebar when clicking outside on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.querySelector('.toggle-btn');
+    const mainContent = document.querySelector('.maincontent');
+    
+    if (window.innerWidth <= 768 && 
+        !sidebar.contains(event.target) && 
+        !toggleBtn.contains(event.target) && 
+        sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        mainContent.classList.remove('shifted');
+    }
+});
+
+// Restart timer on user activity
 ["click", "mousemove", "keypress"].forEach(event => {
     document.addEventListener(event, startTimer);
 });
 
+// Start timer on page load
 startTimer();
+
+// Function to show summon details modal
+function showSummonDetails(summonId, summonData, qrImage, qrDescription) {
+    // Fill modal with data
+    document.getElementById('modalSummonId').textContent = summonData.summonId;
+    document.getElementById('modalDate').textContent = summonData.date;
+    document.getElementById('modalTime').textContent = summonData.time;
+    document.getElementById('modalViolation').textContent = summonData.violation;
+    document.getElementById('modalDescription').textContent = summonData.description;
+    document.getElementById('modalFine').textContent = 'RM ' + summonData.fine;
+    document.getElementById('modalPoints').textContent = summonData.points;
+    
+    // Set QR code image
+    const qrImg = document.getElementById('qrCodeImage');
+    if (qrImage) {
+        qrImg.src = qrImage;
+        qrImg.style.display = 'block';
+        document.getElementById('qrDescription').textContent = qrDescription || 'QR Code for summon payment';
+    } else {
+        qrImg.style.display = 'none';
+        document.getElementById('qrDescription').textContent = 'No QR Code available';
+    }
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('summonDetailsModal'));
+    modal.show();
+}
+
+// Extract summon data from table row
+function getSummonData(row) {
+    const cells = row.querySelectorAll('td');
+    return {
+        summonId: cells[0].textContent.trim(),
+        date: cells[1].querySelector('br') ? cells[1].textContent.split('\n')[0].trim() : 'N/A',
+        time: cells[1].querySelector('br') ? cells[1].querySelector('br').nextSibling.textContent.trim() : '',
+        violation: cells[2].textContent.trim(),
+        fine: cells[3].textContent.replace('RM ', '').trim(),
+        description: row.getAttribute('data-description') || 'No description provided',
+        points: row.getAttribute('data-points') || '0'
+    };
+}
+
+// Add click event to View Details buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.view-details-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const row = this.closest('tr');
+            const summonId = this.getAttribute('data-summon-id');
+            const qrImage = this.getAttribute('data-qr-image');
+            const qrDescription = this.getAttribute('data-qr-description');
+            const summonData = getSummonData(row);
+            
+            showSummonDetails(summonId, summonData, qrImage, qrDescription);
+        });
+    });
+});
 </script>
 <body>
     <header class="header">
-        <div class="header_left">
+        <div class="header-left">
+            <!-- Toggle button for sidebar -->
+            <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle navigation">
+                <i class="fas fa-bars"></i>Menu
+            </button>
             <div class="logo">
                 <img src="UMPLogo.png" alt="UMPLogo">
             </div>
@@ -439,16 +640,28 @@ startTimer();
         <h1 class="sidebartitle">Student Bar</h1>
         <ul class="menu">
             <li>
-                <a href="StudentDashboard.php" class="menutext">Dashboard</a>
+                <a href="StudentDashboard.php" class="menutext">
+                    <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
+                    Dashboard
+                </a>
             </li>
             <li>
-                <a href="VehicleRegistration.php" class="menutext">Vehicle Registration</a>
+                <a href="VehicleRegistration.php" class="menutext">
+                    <span class="menu-icon"><i class="fas fa-car"></i></span>
+                    Vehicle Registration
+                </a>
             </li>
             <li>
-                <a href="Booking.php" class="menutext">Book Parking</a>
+                <a href="Booking.php" class="menutext">
+                    <span class="menu-icon"><i class="fas fa-calendar-check"></i></span>
+                    Book Parking
+                </a>
             </li>
             <li>
-                <a href="MeritStatus.php" class="menutext active">Merit status</a>
+                <a href="MeritStatus.php" class="menutext active">
+                    <span class="menu-icon"><i class="fas fa-star"></i></span>
+                    Merit status
+                </a>
             </li>
         </ul>
     </nav>
@@ -493,7 +706,8 @@ startTimer();
                     </thead>
                     <tbody>
                         <?php foreach ($summonList as $s): ?>
-                            <tr>
+                            <tr data-description="<?= e($s['SummonDescription']) ?>" 
+                                data-points="<?= e($s['ViolationPoint']) ?>">
                                 <td><strong><?= e($s['SummonID']) ?></strong></td>
                                 <td class="small">
                                     <?= $s['SummonDate'] ? e(date('d M Y', strtotime($s['SummonDate']))) : 'N/A' ?>
@@ -501,14 +715,19 @@ startTimer();
                                     <?= $s['SummonTime'] ? e($s['SummonTime']) : '' ?>
                                 </td>
                                 <td>
-                                    <strong><?= e($s['ViolationName'] ?? 'N/A') ?></strong>
+                                    <strong><?= e($s['ViolationType'] ?? 'N/A') ?></strong>
                                     <?php if (!empty($s['ViolationType'])): ?>
                                         <br><span class="small"><?= e($s['ViolationType']) ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td><strong>RM <?= e(number_format($s['FineAmount'] ?? 0, 2)) ?></strong></td>
                                 <td>
-                                    <a class="btn" href="ViewSummon.php?id=<?= urlencode($s['SummonID']) ?>">View Details</a>
+                                    <button class="btn view-details-btn" 
+                                            data-summon-id="<?= e($s['SummonID']) ?>"
+                                            data-qr-image="<?= e($s['Image_URL'] ?? '') ?>"
+                                            data-qr-description="<?= e($s['QR_Description'] ?? '') ?>">
+                                        View Details
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -520,8 +739,75 @@ startTimer();
         </div>
     </div>
 
+    <!-- Summon Details Modal -->
+    <div class="modal fade" id="summonDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-invoice"></i> Summon Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="qr-code-container">
+                        <h4><i class="fas fa-qrcode"></i> Payment QR Code</h4>
+                        <img id="qrCodeImage" class="qr-image" src="" alt="QR Code">
+                        <p id="qrDescription" class="text-muted"></p>
+                    </div>
+                    
+                    <div class="summon-details">
+                        <h5><i class="fas fa-info-circle"></i> Summon Information</h5>
+                        <div class="detail-row">
+                            <div class="detail-label">Summon ID:</div>
+                            <div class="detail-value" id="modalSummonId"></div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Date:</div>
+                            <div class="detail-value" id="modalDate"></div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Time:</div>
+                            <div class="detail-value" id="modalTime"></div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Violation:</div>
+                            <div class="detail-value" id="modalViolation"></div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Description:</div>
+                            <div class="detail-value" id="modalDescription"></div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Fine Amount:</div>
+                            <div class="detail-value" id="modalFine"></div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Violation Points:</div>
+                            <div class="detail-value" id="modalPoints"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Payment Instructions:</strong> Scan the QR code above to pay the fine. 
+                        Payment must be made within 14 days to avoid additional penalties.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <p>© 2025 FKPark System</p>
+        <p><i class="far fa-copyright"></i> 2025 FKPark System</p>
     </footer>
 </body>
 </html>
+<?php
+$conn->close();
+?>
